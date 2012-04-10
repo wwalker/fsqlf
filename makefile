@@ -1,58 +1,23 @@
 PROJECTFOLDER=fsqlf
-SRC=core/fsqlf.lex
-HEADERS=$(wildcard core/*.h core/*.def)
-
-# where all executables will be put
-LEX_OUTPUT=core/lex.yy.c
-
-
-CFLAGS+=-DVERSION=\"$(VERSION)\"
-CXXFLAGS+=-DVERSION=\"$(VERSION)\"
-
-ifdef WIN
-OS_TARGET=windows
-EXEC_CLI=fsqlf.exe
-EXEC_GUI=wx_fsqlf.exe
-CC=i586-mingw32msvc-gcc
-CXX=i586-mingw32msvc-g++
-CXXFLAGS+= `/usr/i586-mingw32msvc/bin/wx-config --libs     | sed 's/-mthreads//'`          `/usr/i586-mingw32msvc/bin/wx-config --cxxflags | sed 's/-mthreads//'`
-# -mthreads needs to be removed , so mingwm10.dll would not be needed (http://old.nabble.com/mingwm10.dll-ts8920679.html)
-else
-OS_TARGET=linux
-EXEC_CLI=fsqlf
-EXEC_GUI=wx_fsqlf
-CC=gcc
-CXX=g++
-CXXFLAGS+= `wx-config --cxxflags`   `wx-config --libs`
-endif
-
-
-
+SRC=src/*.d
 
 
 
 .PHONY: all clean zip test test-print test-compare
 
 
-#some prerequisites
-$(LEX_OUTPUT): $(SRC) $(HEADERS)
-	flex   -o $@   $<
-
 #  BUILD
-all:$(EXEC_CLI) $(EXEC_GUI)
-$(EXEC_CLI):$(LEX_OUTPUT)
-	$(CC)   $<   -o $@
-	strip $@
-
-$(EXEC_GUI):   gui/wx_fsqlf.cpp  gui/license_text.h   | $(EXEC_CLI)
-	$(CXX)   $<   -o $@   $(CXXFLAGS)
-	strip $@
-
-LICENSE_TEXT=gui/license_text.h
-$(LICENSE_TEXT): LICENSE
-	tools/text_to_header.sh   $<   $@
+fsqlf: src/fsqlf.d src/configuration_types.d src/keyword.d src/keyword_conf.d
+	cd src && dmd -unittest fsqlf.d configuration_types.d keyword.d keyword_conf.d
+	mv ./src/fsqlf ./fsqlf
 
 
+all: fsqlf
+
+
+clean:
+	rm -f src/*.o
+	rm -f fsqlf
 
 
 #  TESTING
@@ -71,33 +36,3 @@ $(TEST_TMP_ORIGINAL):
 $(TEST_TMP_FORMATED):
 	./$(EXEC_CLI) $(TEST_SAMPLE) |  tr '\n' ' ' | sed 's/[\t ]//g' | sed 's/outer//gi' | sed 's/inner//gi' > $(TEST_TMP_FORMATED)
 
-
-
-#  CLEANUP
-TMP_BAKUPS=$(wildcard */*~) $(wildcard *~) $(TEST_TMP_ORIGINAL) $(TEST_TMP_FORMATED)
-clean:   clean_local   clean_win
-clean_local:
-	rm -R -f $(EXEC_GUI) $(EXEC_CLI)  $(LEX_OUTPUT)  $(TMP_BAKUPS)  $(wildcard $(PROJECTFOLDER)*.zip) tmp $(LICENSE_TEXT)
-clean_win:
-	make clean_local WIN=1
-
-
-
-#  BUILD ARCHIVE  (source and binaries for publishing)
-CONF_FILE=formatting.conf
-VERSION:=$(shell git describe master)
-ZIP_NAME:=$(PROJECTFOLDER).$(VERSION).zip
-zip: tmp_folder
-	rm -f $(ZIP_NAME)
-	git archive master  -o $(ZIP_NAME)  --format=zip --prefix='$(PROJECTFOLDER)/source/'
-	cd tmp/ &&   zip -r ../$(ZIP_NAME)  $(PROJECTFOLDER)
-
-tmp_folder: LICENSE README
-	make prep_bin
-	make prep_bin WIN=1
-	cp    -t tmp/$(PROJECTFOLDER)   $^
-
-
-prep_bin:   $(EXEC_CLI) $(EXEC_GUI) $(CONF_FILE)
-	mkdir -p tmp/$(PROJECTFOLDER)/$(OS_TARGET)
-	cp    -t tmp/$(PROJECTFOLDER)/$(OS_TARGET)    $^
