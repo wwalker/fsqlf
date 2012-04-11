@@ -15,6 +15,10 @@ fsqlf: src/fsqlf.d src/configuration_types.d src/keyword.d src/keyword_conf.d
 all: fsqlf
 
 
+test: fsqlf
+	./fsqlf
+
+
 clean:
 	rm -f src/*.o
 	rm -f fsqlf
@@ -24,7 +28,6 @@ clean:
 TEST_SAMPLE=testing/sample.sql
 TEST_TMP_ORIGINAL=testing/tmp_test_original.txt
 TEST_TMP_FORMATED=testing/tmp_test_formated.txt
-test: test-print test-compare
 
 test-print:$(EXEC_CLI)
 	./$(EXEC_CLI) $(TEST_SAMPLE) |  awk -F, '{ printf("%4d # ", NR) ; print}'
