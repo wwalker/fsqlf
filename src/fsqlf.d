@@ -16,21 +16,51 @@ void format_sql(Keyword[string] k, string input, File output=std.stdio.stdout)
     write_output(text_formed, output);         // write to the output
 }
 
-auto read_input(in string input) { return input; }
-auto lex(in string input, Keyword[string])
-{
 
-    return input;
+auto read_input(in string input) { return input; }
+
+
+auto lex(in string input, Keyword[string] keywordList)
+{
+    auto start = 0;
+    Token[] resultTokens;
+    do
+    {
+        auto r = getFrontToken(input[start..$], keywordList);
+        debug(lex)
+        {
+            import std.stdio;
+            writeln(r.toString, " - ", input[start..$]);
+        }
+        ++resultTokens.length;
+        resultTokens[$-1] = r;
+        start += resultTokens[$-1].length;
+    } while (resultTokens[$-1].name != "EOF");
+
+    import std.algorithm;
+    return reduce!("a ~ b.toString")("", resultTokens);
 }
+
+
 auto combine(in string input) { return input; }
+
+
 auto space_insert(in string input) { return input; }
+
+
 auto space_adjust(in string input) { return input; }
+
+
 auto toString(in string input) { return input; }
+
+
 void write_output(in string txt, File output_stream) { output_stream.writefln(txt); }
+
 
 void main()
 {
-
-    format_sql(keyword_conf.k, "SELECT 1 as x FROM gsd");
-    //foreach(x;k){writeln(x.textShort);}
+    auto input = "SELECT 1 as x FROM gsd";
+    writeln(" Input is:\n", input);
+    writeln("\n Output is:");
+    format_sql(keyword_conf.keywordList, input);
 }

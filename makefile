@@ -8,7 +8,7 @@ SRC=src/*.d
 
 #  BUILD
 fsqlf: src/fsqlf.d src/configuration_types.d src/keyword.d src/keyword_conf.d
-	cd src && dmd -unittest fsqlf.d configuration_types.d keyword.d keyword_conf.d
+	cd src && dmd -unittest -debug=1 fsqlf.d configuration_types.d keyword.d keyword_conf.d
 	mv ./src/fsqlf ./fsqlf
 
 

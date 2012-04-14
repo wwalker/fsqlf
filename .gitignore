@@ -4,17 +4,13 @@
 # Executables
 fsqlf
 fsqlf.exe
-wx_fsqlf
-wx_fsqlf.exe
-
-# Generated code
-core/lex.yy.c
-gui/license_text.h
-
 
 #tmp backups
 *~
 *.swp
+
+#compiled object files
+*.o
 
 #archive for uploading
 *.zip
