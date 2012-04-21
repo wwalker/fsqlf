@@ -7,9 +7,11 @@ SRC=src/*.d
 
 
 #  BUILD
-fsqlf: src/fsqlf.d src/configuration_types.d src/keyword.d src/keyword_conf.d
-	cd src && dmd -unittest -debug=1 fsqlf.d configuration_types.d keyword.d keyword_conf.d
-	mv ./src/fsqlf ./fsqlf
+fsqlf: src/fsqlf.d src/higher_types.d src/types.d
+	dmd -unittest src/fsqlf.d src/higher_types.d src/types.d
+
+fsqlf-gdb: src/fsqlf.d src/higher_types.d src/types.d
+	dmd -unittest -g -debug=1 src/fsqlf.d src/higher_types.d src/types.d
 
 
 all: fsqlf

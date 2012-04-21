@@ -41,6 +41,7 @@ static this()
         ,"subquery ')'" : K("",   S(1,0,0), S(1,0,0), ")"        , "",  true,      `\)`) //&debug_p,&inc_RIGHTP,&end_SUB,NULL      ,NULL,NULL )
 
         ,"space"      : K("",   S(1,0,0), S(1,0,0), " "          , "",  true, `( |\n|\t)+`)
+        ,"number"     : K("",   S(1,0,0), S(1,0,0), " "          , "",  true, `\d+`)
     ];
 
     foreach(kwname ,ref kw ; keywordList) kw.initDefaults();
@@ -73,19 +74,28 @@ struct Token
 }
 
 
+auto nextNonSpaceNorComment(in Token[] tokens,long current)
+{
+    assert(tokens[current].name != "EOF");
+    auto i = current + 1; // next
+    // TODO: add also comment token here, when thei will be added to this file
+    while(tokens[i].name == "space") ++i; // if next token was space, skip it and take the one after it
+
+    return i;
+}
+
+
 /* Extract token from the front of the string */
 auto getFrontToken(in string input, Keyword[string] kw_collection)
 {
     if(input == "") return Token("EOF", "");
     foreach(string kwName, Keyword kw; kw_collection)
     {
-        auto m = kw.match(input);
+        auto m = kw.matchTokens(input);
         if(m) return Token(kwName, m.captures.hit());
     }
     import std.regex;
-    auto m = std.regex.match(input, regex(`\d+`));
-    if(m) return Token("number", m.captures.hit() );
-    else  return Token("none", std.regex.match(input, regex(`[^ \t\r\n]+`)).captures.hit() );
+    return Token("none", std.regex.match(input, regex(`[^ \t\r\n]+`)).captures.hit() );
 }
 unittest
 {
@@ -96,3 +106,8 @@ unittest
 }
 
 
+auto getFrontKeyword(Token[] tokens, Keyword[string] kw_collection)
+{
+    
+    return tokens;
+}
