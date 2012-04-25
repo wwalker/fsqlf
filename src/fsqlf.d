@@ -10,14 +10,14 @@ void main()
     auto input = "SELECT 1 FROM t1 LEFT JOIN t2";
     writeln(" Input is:\n", input);
     writeln("\n Output is:");
-    format_sql(keywordList, input);
+    format_sql(keywordList, ignoredByParser, input);
 }
 
 
-void format_sql(Keyword[string] k, string input, File output=std.stdio.stdout)
+void format_sql(Keyword[string] k, Keyword[string] i, string input, File output=std.stdio.stdout)
 {
     auto input_text  = read_input(input);
-    auto tokens      = lex(input_text, k);      // split text into words, puntation/space chars and comments
+    auto tokens      = lex(input_text, k, i);   // split text into words, puntation/space chars and comments
     auto keywords    = parse(tokens, k);        // recognise logical keywords like 'LEFT OUTER JOIN'; Also handle such cases as LEFT /*f */ JOIN
     auto kw_spaced   = space_insert(keywords);  // insert spaces simply by looking at the keywords
     auto kw_formed   = space_adjust(kw_spaced); // adjust spacing by context
@@ -29,13 +29,14 @@ void format_sql(Keyword[string] k, string input, File output=std.stdio.stdout)
 auto read_input(in string input) { return input; }
 
 
-ref auto lex(in string input, Keyword[string] keywordList)
+
+ref auto lex(in string input, Keyword[string] keywordList, Keyword[string] ignoredByParser)
 {
     auto start = 0;
     Token[] resultTokens;
     do
     {
-        auto r = getFrontToken(input[start..$], keywordList);
+        auto r = getFrontToken(input[start..$], keywordList, ignoredByParser);
         debug(lex)
         {
             import std.stdio;
@@ -44,6 +45,15 @@ ref auto lex(in string input, Keyword[string] keywordList)
         resultTokens ~= r;
         start += resultTokens[$-1].length;
     } while (resultTokens[$-1].name != "EOF");
+
+    debug(lex)
+    {
+        import std.stdio:writeln;
+        import std.algorithm:reduce;
+        writeln("- debug lex start");
+        writeln( std.algorithm.reduce!("a ~ b.toString")("", resultTokens) );
+        writeln("- debug lex end");
+    }
 
     return resultTokens;
 }
