@@ -17,7 +17,7 @@ void main()
 void format_sql(Keyword[string] k, Keyword[string] i, string input, File output=std.stdio.stdout)
 {
     auto input_text  = read_input(input);
-    auto tokens      = lex(input_text, k, i);   // split text into words, puntation/space chars and comments
+    auto tokens      = preprocess(input_text, k, i);   // split text into words, puntation/space chars and comments
     auto keywords    = parse(tokens, k);        // recognise logical keywords like 'LEFT OUTER JOIN'; Also handle such cases as LEFT /*f */ JOIN
     auto kw_spaced   = space_insert(keywords);  // insert spaces simply by looking at the keywords
     auto kw_formed   = space_adjust(kw_spaced); // adjust spacing by context
@@ -30,7 +30,7 @@ auto read_input(in string input) { return input; }
 
 
 
-ref auto lex(in string input, Keyword[string] keywordList, Keyword[string] ignoredByParser)
+ref auto preprocess(in string input, Keyword[string] keywordList, Keyword[string] ignoredByParser)
 {
     auto start = 0;
     Token[] resultTokens;

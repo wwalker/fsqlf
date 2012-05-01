@@ -3,10 +3,10 @@ module types;
 
 struct Spacing
 {
-    int newLines=0;
-    int tabs=0;
-    int spaces=0;
-    string tab="    ";
+    int newLines = 0;
+    int tabs = 0;
+    int spaces = 0;
+    string tab = "    ";
 
     /* Generate string which will be the output of this spacing configuration */
     pure auto outputString()
@@ -26,6 +26,49 @@ struct Spacing
     }
 }
 
+
+struct KeywordText
+{
+    import std.regex;
+
+    string vLong;        // Long version (e.g. "LEFT OUTER JOIN")
+    string vShort;       // Short version (e.g. "LEFT JOIN")
+    Regex!(char) patern; // some keywords should be recognised using regex
+
+    /* Describes what method to use during the matching */
+    enum MatchMethod{ text, patern };
+    MatchMethod matchMethod;
+
+    this(string singleTextVersion)
+    {
+        this.vShort = singleTextVersion;
+        this.vLong  = singleTextVersion;
+        this.matchMethod = MatchMethod.text;
+    }
+    this(string textShort,string textLong)
+    {
+        this.vShort = textShort;
+        this.vLong  = textLong;
+        this.matchMethod = MatchMethod.text;
+    }
+    this(Regex!(char) patern, string text="")
+    {
+        this.patern = patern;
+        this.matchMethod = MatchMethod.patern;
+        this.vShort = text; // only for printing
+        this.vLong  = text; // only for printing
+    }
+
+    /* Keywords may contain many words. Objective of the function is to match at least one word - prefferably longer */
+    auto matchOneWord(string sqlText)
+    {
+        import std.algorithm:map;
+        import std.array:split;
+        auto paterns = std.algorithm.map!(std.regex.regex)(std.array.split(this.vLong));
+        paterns     ~= std.algorithm.map!(std.regex.regex)(std.array.split(this.vShort));
+    }
+    
+}
 
 enum KeywordType { simple, composite };
 
@@ -87,28 +130,28 @@ struct Keyword
 
 
     /* get longest possible word count, taking into account short and long versions */
-    auto getLongestWordCount()
+    pure auto getLongestWordCount()
     {
-        assert(this.getShortWordCount() <= this.getLongWordCount());
+        assert(Keyword.wordCount(this.textShort) <= Keyword.wordCount(this.textLong));
         switch(this.keywordType)
         {
             case KeywordType.simple: return 1;
-            default:                 return getLongWordCount();
+            default:                 return Keyword.wordCount(this.textLong);
         }
     }
 
 
-    auto matchKeyword(string[] txt)
+    auto matchedWordcount(string[] txt)
     {
 //import std.stdio;
 //writeln("in matchKeyword: this.keywordType=", this.keywordType);
         switch(this.keywordType)
         {
             case KeywordType.simple:
-                return this.matchSimpleKeyword(txt);
+                return this.matchAgainstRegex(txt);
                 break;
             case KeywordType.composite:
-                return this.matchCompositeKeyword(txt);
+                return this.matchAgainstText(txt);
                 break;
             default: assert(0);
         }
@@ -149,7 +192,7 @@ private:
 
 
     /* Choose default value for Keyword members */
-    auto chooseDefaultValue()
+    pure auto chooseDefaultValue()
     {
         assert(this.textShort != "" || this.textLong != "");
         if(this.textShort=="")
@@ -166,7 +209,8 @@ private:
     }
 
 
-    auto matchSimpleKeyword(string[] inputWord)
+    /* Match token against predefined Keywrod's regex */
+    auto matchAgainstRegex(string[] inputWord)
     {
         assert(this.keywordType == KeywordType.simple);
         assert(inputWord.length>0);
@@ -174,17 +218,18 @@ private:
     }
 
 
-    auto matchCompositeKeyword(string[] inputWords)
+    /* Match tokens against Keywrod's text */
+    auto matchAgainstText(string[] inputWords)
     {
         assert(this.keywordType == KeywordType.composite);
 import std.stdio;
 //if(this.textShort == "LEFT JOIN") writeln(inputWords);
 
         import std.array;
-        if(inputWords.length < this.getLongWordCount()
-            && inputWords.length < this.getShortWordCount()) return 0;
-        if(     matchAgainstKeywordText(inputWords, this.textLong )) return this.getLongWordCount();
-        else if(matchAgainstKeywordText(inputWords, this.textShort)) return this.getShortWordCount();
+        if(inputWords.length < Keyword.wordCount(this.textLong)
+            && inputWords.length < Keyword.wordCount(this.textShort)) return 0;
+        if(     matchAgainstKeywordText(inputWords, this.textLong )) return Keyword.wordCount(this.textLong);
+        else if(matchAgainstKeywordText(inputWords, this.textShort)) return Keyword.wordCount(this.textShort);
         else return 0;
     }
     unittest
@@ -193,9 +238,9 @@ import std.stdio;
         kw.textLong  = "LEFT OUTER JOIN";
         kw.textShort = "LEFT JOIN";
         kw.initDefaults();
-        assert( kw.matchCompositeKeyword(["LeFT", "outer", "JOIN"]) );
-        assert( kw.matchCompositeKeyword(["LeFT", "JOIN", "table"]) );
-        assert(!kw.matchCompositeKeyword(["LeFT", "inner", "JOIN"]));
+        assert( kw.matchAgainstText(["LeFT", "outer", "JOIN"]) );
+        assert( kw.matchAgainstText(["LeFT", "JOIN", "table"]) );
+        assert(!kw.matchAgainstText(["LeFT", "inner", "JOIN"]));
     }
 
 
@@ -222,16 +267,10 @@ import std.stdio;
     }
 
 
-    auto getShortWordCount()
-    {
-        import std.array:split;
-        return std.array.split(this.textShort).length;
-    }
-
-
-    auto getLongWordCount()
+    pure static auto wordCount(in string text)
     {
         import std.array;
-        return std.array.split(this.textLong).length;
+        return std.array.split(text).length;
     }
+
 }

@@ -3,6 +3,8 @@ module higher_types;
 
 import types;
 
+alias uint t_index;
+
 Keyword[string] keywordList, ignoredByParser, allOtherMatches;
 static this()
 {
@@ -40,8 +42,6 @@ static this()
         ,"')'"          : K("",   S(0,0,0), S(0,0,0), ")"        , "",  true,      `\)`) //&debug_p,&inc_RIGHTP,NULL    ,NULL      ,NULL,NULL )
         ,"subquery '('" : K("",   S(1,0,0), S(0,0,0), "("        , "",  true,      `\(`) //&debug_p,&inc_LEFTP ,NULL    ,&begin_SUB,NULL,NULL )
         ,"subquery ')'" : K("",   S(1,0,0), S(1,0,0), ")"        , "",  true,      `\)`) //&debug_p,&inc_RIGHTP,&end_SUB,NULL      ,NULL,NULL )
-
-        //,"space"      : K("",   S(1,0,0), S(1,0,0), " "          , "",  true, `( |\n|\t)+`)
         ,"number"     : K("",   S(1,0,0), S(1,0,0), " "          , "",  true, `\d+`)
     ];
 
@@ -67,7 +67,7 @@ struct Token
     string text;
     ulong length;
 
-    auto toString()
+    pure auto toString()
     {
         return "(" ~ this.name ~ " : " ~ this.text ~ ")";
     }
@@ -77,13 +77,13 @@ struct Token
     }
 
 
-    this(in string name, in string text)
+    pure this(in string name, in string text)
     {
         this.name = name;
         this.text = text;
         this.length = this.text.length;
     }
-    auto opEquals(Token b)
+    pure auto opEquals(Token b)
     {
         return this.name == b.name && this.text == b.text && this.length == b.length;
     }
@@ -121,25 +121,25 @@ unittest
 }
 
 
-/* Get Keeyword from the front of token[] container */
+/* Get Keyword from the front of token[] container */
 auto getFrontKeyword(ref Token[] tokens, Keyword[string] keywordCollection)
 {
     import std.algorithm;
     if(tokens[0].text == "") return Token("EOF",tokens[0].text);
     foreach( kwname, kw ; keywordCollection)
     {
-        auto n = 9; // longest keyword seems to be 3 words. Add buffer 9 just in case :) //kw.getLongestWordCount(); - use this to optimise if needed later
-        ulong[] ix = nTokenIndexesByName(tokens, n, "keyword");
-        string[] nextNWords = extractTokenTextsByIndexes(tokens, ix);
+        auto n = 9; // longest keyword seems to be 3 words. 9 will surely enough //kw.getLongestWordCount(); - use this to optimise if needed later
+        t_index[] keywordIndexes = nTokenIndexesByName(tokens, n, "keyword");
+        string[] nextNWords = extractTokenTextsByIndexes(tokens, keywordIndexes);
 
-        auto nbrOfMatchedWords = kw.matchKeyword(nextNWords);
-        if(nbrOfMatchedWords)
+        auto nbrOfMatchedWords = kw.matchedWordcount(nextNWords);
+        if(nbrOfMatchedWords > 0)
         {
             /* leave first - delete others words from input, because they are allready matched and should not be used by later matches */
             for(auto i = 0 ; i < nbrOfMatchedWords ; i++) 
             {
-                tokens[ix[i]].text = " ";
-                tokens[ix[i]].name = "space"; // TODO : do better deletion - probably move to linked lists
+                tokens[keywordIndexes[i]].text = " ";
+                tokens[keywordIndexes[i]].name = "space"; // TODO : do better deletion - probably move to linked lists
             }
             return Token(kwname, std_algorithm_joiner(nextNWords[0..nbrOfMatchedWords]));
         }
@@ -168,12 +168,12 @@ unittest
 }
 
 
-pure ref auto extractTokenTextsByIndexes(in Token[] tokens, in ulong[] indexes)
+pure ref auto extractTokenTextsByIndexes(in Token[] tokens, in t_index[] indexes)
 {
     assert(indexes.length >= 0);
     assert(indexes.length <= tokens.length);
     string[] extractedTokens;
-    foreach(ulong i ; indexes) // get next 'n' 'keywords' which are not spaces nor comments
+    foreach(t_index i ; indexes) // get next 'n' 'keywords' which are not spaces nor comments
     {
         extractedTokens ~= tokens[i].text;
     }
@@ -193,12 +193,12 @@ auto std_algorithm_joiner(string[] x, string separator = " ")
 
 
 //nIndexesOfFunctionalTokens
-pure auto nTokenIndexesByName(in Token[] tokens, ulong n, string tokenName)
+pure auto nTokenIndexesByName(in Token[] tokens, t_index n, string tokenName)
 {
     assert(n>0);
     assert(n<10); // can't think of any keyword containing that much
-    ulong[] result; // will be returned
-    ulong i = 0;
+    t_index[] result; // will be returned
+    t_index i = 0;
     import std.stdio;
 
     do
@@ -236,11 +236,11 @@ bool isMember(T)(T item, T[] array)
 }
 
 
-pure auto closestTokenByName(in Token[] tokens, in ulong currentIndex, in string tokenName)
+pure auto closestTokenByName(in Token[] tokens, in t_index currentIndex, in string tokenName)
 {
     assert(tokens[currentIndex].name != "EOF");
     assert(currentIndex < tokens.length);
-    ulong resultIndex = currentIndex;
+    t_index resultIndex = currentIndex;
 
     while(resultIndex+1 < tokens.length && tokens[resultIndex].name != tokenName) ++resultIndex;
 
