@@ -63,11 +63,29 @@ struct KeywordText
     auto matchOneWord(string sqlText)
     {
         import std.algorithm:map;
-        import std.array:split;
-        auto paterns = std.algorithm.map!(std.regex.regex)(std.array.split(this.vLong));
-        paterns     ~= std.algorithm.map!(std.regex.regex)(std.array.split(this.vShort));
+        import std.array:split,array;
+        alias std.array.array array;
+        alias std.algorithm.map map;
+        alias std.array.split split;
+        Regex!char createFrontWordRegex(string a){ return regex("^" ~ a ~ r"\b","i"); }
+
+        auto paterns = map!createFrontWordRegex(split(this.vLong) ~ split(this.vShort));
+
+        auto tryPatern(Regex!char patern){ return std.regex.match(sqlText, patern); }
+        auto matches = map!tryPatern(paterns);
+        foreach(m ; matches)
+        {
+            if(m) return true;
+        }
+        return false;
     }
-    
+    unittest
+    {
+        auto a = KeywordText("LeFT JOiN");
+        assert( a.matchOneWord("LEFT WORD"));
+        assert( a.matchOneWord("JOIN WORD"));
+        assert(!a.matchOneWord("WORD LEFT"));
+    }
 }
 
 enum KeywordType { simple, composite };
