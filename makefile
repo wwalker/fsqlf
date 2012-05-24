@@ -7,11 +7,11 @@ SRC=src/*.d
 
 
 #  BUILD
-fsqlf: src/fsqlf.d src/higher_types.d src/types.d
-	dmd -unittest src/fsqlf.d src/higher_types.d src/types.d
+fsqlf: src/fsqlf.d src/tokenizer.d src/higher_types.d src/types.d src/preprocessor.d
+	dmd -unittest src/fsqlf.d src/tokenizer.d src/higher_types.d src/types.d src/preprocessor.d
 
-fsqlf-gdb: src/fsqlf.d src/higher_types.d src/types.d
-	dmd -unittest -g -debug=1 src/fsqlf.d src/higher_types.d src/types.d
+fsqlf-gdb: src/fsqlf.d src/tokenizer.d src/higher_types.d src/types.d src/preprocessor.d
+	dmd -unittest -g -debug=1 src/fsqlf.d src/tokenizer.d src/higher_types.d src/types.d src/preprocessor.d
 
 
 all: fsqlf

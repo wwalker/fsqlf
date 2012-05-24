@@ -31,32 +31,32 @@ struct KeywordText
 {
     import std.regex;
 
-    string vLong;        // Long version (e.g. "LEFT OUTER JOIN")
-    string vShort;       // Short version (e.g. "LEFT JOIN")
-    Regex!(char) patern; // some keywords should be recognised using regex
-
     /* Describes what method to use during the matching */
-    enum MatchMethod{ text, patern };
-    MatchMethod matchMethod;
+    enum MatchMethod{ useText, usePatern };
+    MatchMethod m_matchMethod;
+
+    string m_longText;     // Long version e.g. "LEFT OUTER JOIN"
+    string m_shortText;    // Short version e.g. "LEFT JOIN"
+    Regex!(char) m_patern; // Patern which should be used to recognise
 
     this(string singleTextVersion)
     {
-        this.vShort = singleTextVersion;
-        this.vLong  = singleTextVersion;
-        this.matchMethod = MatchMethod.text;
+        m_shortText   = singleTextVersion;
+        m_longText    = singleTextVersion;
+        m_matchMethod = MatchMethod.useText;
     }
     this(string textShort,string textLong)
     {
-        this.vShort = textShort;
-        this.vLong  = textLong;
-        this.matchMethod = MatchMethod.text;
+        m_shortText   = textShort;
+        m_longText    = textLong;
+        m_matchMethod = MatchMethod.useText;
     }
     this(Regex!(char) patern, string text="")
     {
-        this.patern = patern;
-        this.matchMethod = MatchMethod.patern;
-        this.vShort = text; // only for printing
-        this.vLong  = text; // only for printing
+        m_patern      = patern;
+        m_matchMethod = MatchMethod.usePatern;
+        m_shortText   = text; // only for printing
+        m_longText    = text; // only for printing
     }
 
     /* Keywords may contain many words. Objective of the function is to match at least one word - prefferably longer */
@@ -69,7 +69,7 @@ struct KeywordText
         alias std.array.split split;
         Regex!char createFrontWordRegex(string a){ return regex("^" ~ a ~ r"\b","i"); }
 
-        auto paterns = map!createFrontWordRegex(split(this.vLong) ~ split(this.vShort));
+        auto paterns = map!createFrontWordRegex(split(m_longText) ~ split(m_shortText));
 
         auto tryPatern(Regex!char patern){ return std.regex.match(sqlText, patern); }
         auto matches = map!tryPatern(paterns);
@@ -147,6 +147,12 @@ struct Keyword
     }
 
 
+    auto getPaterns()
+    {
+        return this.patern;
+    }
+
+
     /* get longest possible word count, taking into account short and long versions */
     pure auto getLongestWordCount()
     {
@@ -178,6 +184,7 @@ struct Keyword
 
 private:
     Regex!(char)[] patern;
+    string[] paternTexts;
 
 
     /* Set default value (at the moment it is this.textLong) for regex patern */
@@ -188,14 +195,21 @@ private:
         {
             if(this.regexStr != "")
             {
+                this.paternTexts ~= `^` ~ this.regexStr;
                 this.patern ~= std.regex.regex(`^` ~ this.regexStr,"i");
             }
             else
             {
                 foreach( string word ; std.array.split(this.textLong))
+                {
+                    this.paternTexts ~= `^` ~ word ~ `\b`;
                     this.patern ~= std.regex.regex(`^` ~ word ~ `\b`,"i");
+                }
                 foreach( string word ; std.array.split(this.textShort))
+                {
+                    this.paternTexts ~= `^` ~ word ~ `\b`;
                     this.patern ~= std.regex.regex(`^` ~ word ~ `\b`,"i");
+                }
             }
         }
     }

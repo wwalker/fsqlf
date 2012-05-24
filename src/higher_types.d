@@ -44,7 +44,16 @@ static this()
         ,"subquery ')'" : K("",   S(1,0,0), S(1,0,0), ")"        , "",  true,      `\)`) //&debug_p,&inc_RIGHTP,&end_SUB,NULL      ,NULL,NULL )
         ,"number"     : K("",   S(1,0,0), S(1,0,0), " "          , "",  true, `\d+`)
     ];
+/*
+    auto numbers = regex(r"^\d+");
+    auto word    = regex(r"^[\w\d_#]+"); // leading digits should've been already consumed
 
+    auto cmtOneLine   = regex(r"^--*\n");
+    auto cmtMultiLine = regex(r"^/\*+([^*]+|\*+[^/])*\*+/");
+    auto singleQuotedString = regex(r"^'([^']|'')+'");
+    auto doubleQuotedString = regex("^\"[^\"\\n]+\"");
+    auto other   = regex(r"^[^\d\s\w]"); // should be puntuation characters
+*/
     ignoredByParser =
     [
         "space": K("",   S(1,0,0), S(1,0,0), " "          , "",  true, `( |\n|\t)+`)
@@ -61,23 +70,13 @@ static this()
 
 
 /* Token Array will be result of lexing */
-struct Token
+struct Token(T)
 {
-    string name;
+    T name;
     string text;
     ulong length;
 
-    pure auto toString()
-    {
-        return "(" ~ this.name ~ " : " ~ this.text ~ ")";
-    }
-    unittest
-    {
-        assert(Token("select","SElECT").toString == "(select : SElECT)");
-    }
-
-
-    pure this(in string name, in string text)
+    pure this(in T name, in string text)
     {
         this.name = name;
         this.text = text;
@@ -87,45 +86,74 @@ struct Token
     {
         return this.name == b.name && this.text == b.text && this.length == b.length;
     }
+    pure auto clear()
+    {
+        this.length = 0;
+    }
+    
+    @property bool empty()
+    {
+        return this.length == 0;
+    }
 }
 
 
 /* Extract token from the front of the string */
-auto getFrontToken(in string input, Keyword[string] kw_collection, Keyword[string] ignoredByParser)
+Token!string getFrontToken(in string input, Keyword[string] kw_collection, Keyword[string] ignoredByParser)
 {
-    if(input == "") return Token("EOF", "");
+    if(input == "") return Token!string("EOF", "");
     /* first try to match spaces and comments */
     foreach(string kwName, Keyword kw; ignoredByParser)
     {
         auto m = kw.matchTokens(input);
-        if(m) return Token("space", m.captures.hit());
+        if(m) return Token!string("space", m.captures.hit());
     }
 
     /* then try keywords*/
     foreach(string kwName, Keyword kw; kw_collection)
     {
         auto m = kw.matchTokens(input);
-        if(m) return Token("keyword", m.captures.hit());
+        if(m) return Token!string("keyword", m.captures.hit());
     }
 
     /* otherwise match anything else */
     import std.regex;
-    return Token("none", std.regex.match(input, regex(`[^ \t\r\n]+`)).captures.hit() );
+    return Token!string("none", std.regex.match(input, regex(`[^ \t\r\n]+`)).captures.hit() );
+}
+
+
+
+
+auto getFrontToken(in string input, Keyword[string] kw_collection)
+{
+    if(input == "") return "";
+
+    /* then try keywords*/
+    foreach(string kwName, Keyword kw; kw_collection)
+    {
+        auto m = kw.matchTokens(input);
+        if(m) return m.captures.hit();
+    }
+
+    /* otherwise match anything else */
+    import std.regex;
+    return std.regex.match(input, `[^ \t\r\n]+\b`).captures.hit();
 }
 unittest
 {
-    assert(getFrontToken("seLEct", keywordList, ignoredByParser).toString == "(keyword : seLEct)");
+    assert(getFrontToken("seLEct", keywordList, ignoredByParser).text == "seLEct");
     assert(getFrontToken("seLEct", keywordList, ignoredByParser).length == 6);
-    assert(getFrontToken("xyz.zyx", keywordList, ignoredByParser).toString == "(none : xyz.zyx)");
+    assert(getFrontToken("xyz.zyx", keywordList, ignoredByParser).text == "xyz.zyx");
     assert(getFrontToken("xyz.zyx", keywordList, ignoredByParser).length == 7);
 }
 
 
+
 /* Get Keyword from the front of token[] container */
-auto getFrontKeyword(ref Token[] tokens, Keyword[string] keywordCollection)
+auto getFrontKeyword(ref Token!string[] tokens, Keyword[string] keywordCollection)
 {
     import std.algorithm;
-    if(tokens[0].text == "") return Token("EOF",tokens[0].text);
+    if(tokens[0].text == "") return Token!string("EOF",tokens[0].text);
     foreach( kwname, kw ; keywordCollection)
     {
         auto n = 9; // longest keyword seems to be 3 words. 9 will surely enough //kw.getLongestWordCount(); - use this to optimise if needed later
@@ -141,34 +169,32 @@ auto getFrontKeyword(ref Token[] tokens, Keyword[string] keywordCollection)
                 tokens[keywordIndexes[i]].text = " ";
                 tokens[keywordIndexes[i]].name = "space"; // TODO : do better deletion - probably move to linked lists
             }
-            return Token(kwname, std_algorithm_joiner(nextNWords[0..nbrOfMatchedWords]));
+            return Token!string(kwname, std_algorithm_joiner(nextNWords[0..nbrOfMatchedWords]));
         }
     }
-    return Token("none",tokens[0].text);
+    return Token!string("none",tokens[0].text);
 }
 unittest
 {
-    Token[] sequence;
-    sequence ~= Token("keyword","left");
-    sequence ~= Token("space"    ," "   );
-    sequence ~= Token("keyword","join");
-    sequence ~= Token("none","x");
-    assert(getFrontKeyword(sequence, keywordList) == Token("left join","left join"));
+    Token!string[] sequence;
+    sequence ~= Token!string("keyword","left");
+    sequence ~= Token!string("space"    ," "   );
+    sequence ~= Token!string("keyword","join");
+    sequence ~= Token!string("none","x");
+    assert(getFrontKeyword(sequence, keywordList) == Token!string("left join","left join"));
 
-
-    Token[] spaces;
-    spaces ~= Token("none","  ");
-    spaces ~= Token("none","  ");
+    Token!string[] spaces;
+    spaces ~= Token!string("none","  ");
+    spaces ~= Token!string("none","  ");
     auto x2 = getFrontKeyword(spaces, keywordList);
-    import std.stdio;
-    writeln(x2.toString);
-    assert(x2 == Token("none" ,"  ") || x2 == Token("space" ,"  ")); // TODO : fix this
-    assert(x2 != Token("spaces","  "));
-    assert(x2 != Token("space" ," " ));
+    assert(x2 == Token!string("none" ,"  ") || x2 == Token!string("space" ,"  ")); // TODO : fix this
+    assert(x2 != Token!string("spaces","  "));
+    assert(x2 != Token!string("space" ," " ));
 }
 
 
-pure ref auto extractTokenTextsByIndexes(in Token[] tokens, in t_index[] indexes)
+
+pure ref auto extractTokenTextsByIndexes(in Token!string[] tokens, in t_index[] indexes)
 {
     assert(indexes.length >= 0);
     assert(indexes.length <= tokens.length);
@@ -193,7 +219,7 @@ auto std_algorithm_joiner(string[] x, string separator = " ")
 
 
 //nIndexesOfFunctionalTokens
-pure auto nTokenIndexesByName(in Token[] tokens, t_index n, string tokenName)
+pure auto nTokenIndexesByName(in Token!string[] tokens, t_index n, string tokenName)
 {
     assert(n>0);
     assert(n<10); // can't think of any keyword containing that much
@@ -212,14 +238,14 @@ pure auto nTokenIndexesByName(in Token[] tokens, t_index n, string tokenName)
 }
 unittest
 {
-    Token[] testSequence;
+    Token!string[] testSequence;
     /* testSequence := "left" , " " , "join" */
-    testSequence ~= Token("keyword","left");
-    testSequence ~= Token("space"  ," "   );
-    testSequence ~= Token("keyword","join");
-    testSequence ~= Token("space"  ," "   );
-    testSequence ~= Token("space"  ," "   );
-    testSequence ~= Token("keyword","join");
+    testSequence ~= Token!string("keyword","left");
+    testSequence ~= Token!string("space"  ," "   );
+    testSequence ~= Token!string("keyword","join");
+    testSequence ~= Token!string("space"  ," "   );
+    testSequence ~= Token!string("space"  ," "   );
+    testSequence ~= Token!string("keyword","join");
 
     assert(nTokenIndexesByName(testSequence, 1, "keyword") == [0]);
     assert(nTokenIndexesByName(testSequence, 2, "keyword") == [0,2]);
@@ -236,7 +262,7 @@ bool isMember(T)(T item, T[] array)
 }
 
 
-pure auto closestTokenByName(in Token[] tokens, in t_index currentIndex, in string tokenName)
+pure auto closestTokenByName(in Token!string[] tokens, in t_index currentIndex, in string tokenName)
 {
     assert(tokens[currentIndex].name != "EOF");
     assert(currentIndex < tokens.length);
@@ -249,12 +275,12 @@ pure auto closestTokenByName(in Token[] tokens, in t_index currentIndex, in stri
 }
 unittest
 {
-    Token[] testSequence;
+    Token!string[] testSequence;
     /* testSequence := "left" , " " , "join" */
-    testSequence ~= Token("keyword","left");
-    testSequence ~= Token("space"  ," "   );
-    testSequence ~= Token("keyword","join");
-    testSequence ~= Token("space"  ," "   );
+    testSequence ~= Token!string("keyword","left");
+    testSequence ~= Token!string("space"  ," "   );
+    testSequence ~= Token!string("keyword","join");
+    testSequence ~= Token!string("space"  ," "   );
     assert(closestTokenByName(testSequence, 0, "keyword") == 0);
     assert(closestTokenByName(testSequence, 1, "keyword") == 2);
 }
