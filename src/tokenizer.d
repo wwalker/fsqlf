@@ -21,7 +21,7 @@ private:
     string p_sqlText;
     alias Token!TokenType ResultToken;
     ResultToken p_cachedFront;
-    //string 
+    //string
 
 public:
     this(string sqlText)
@@ -64,23 +64,33 @@ public:
             return ResultToken(TokenType.comment, cmtResult);
         }
 
-        version(none)
-        {
-            return ResultToken(TokenType.other, getFrontToken(p_sqlText, keywordList)); // includes string end
-        }
-        else
-        {
-            import std.array;
-            auto paterns = std.array.array(toPaternRange(keywordList.values));
-            return ResultToken(TokenType.other, getFront.Other(p_sqlText, paterns)); // includes string end
-        }
+        import std.array;
+        auto paterns = std.array.array(toPaternRange(keywordList.values));
+        return ResultToken(TokenType.other, getFront.Other(p_sqlText, paterns)); // includes string end
     }
 
 
-    @property auto empty()
+    @property
+    auto empty()
     {
         return p_sqlText.length == 0;
     }
+
+
+    string toString()
+    {
+        import std.algorithm;
+        return std.algorithm.reduce!q{a~"("~b.text~")"}("",this);
+    }
+
+
+   /+ void debug_print()
+    {
+        import std.stdio;
+        Tokenizer copy = this;
+        writeln("Tokenizer:");
+        writeln(copy.toString());
+    }+/
 }
 unittest
 {

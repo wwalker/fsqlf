@@ -100,7 +100,7 @@ struct Keyword
     bool mandatorySpacing;
     string regexStr;
     KeywordType keywordType;
-
+    string kwName;
 
     /* Set missing values to default value */
     auto initDefaults()

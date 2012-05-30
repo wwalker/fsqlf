@@ -52,10 +52,14 @@ struct PreprocResult
 import std.range;
 struct Preprocessor
 {
-    Token!TokenType[] p_sqlTokens;
+private:
+
+    Tokenizer p_sqlTokens;
 
 
-    this(Token!TokenType[] sqlTokens)
+public:
+
+    this(Tokenizer sqlTokens)
     {
         p_sqlTokens = sqlTokens;
     }
@@ -64,7 +68,7 @@ struct Preprocessor
     PreprocResult front()
     {
         PreprocResult result;
-        foreach(token_ix, token ; p_sqlTokens)
+        foreach(token ; p_sqlTokens)
         {
             result.addDispatchToken(token);
             if(isOther(token))
@@ -86,7 +90,14 @@ struct Preprocessor
 
     @property auto empty()
     {
-        return p_sqlTokens.length == 0;
+        return p_sqlTokens.empty;
+    }
+
+
+    string toString()
+    {
+        import std.algorithm;
+        return std.algorithm.reduce!q{a~"("~b.p_tokenText~")"}("",this);
     }
 }
 unittest
@@ -94,10 +105,7 @@ unittest
     import std.range;
 
     static assert(isInputRange!Preprocessor);
-    auto t = tokenizer.Tokenizer("SELECT /**/ FROM 1 --");
-    Token!TokenType[] tokens = std.array.array(t);
-    auto c = Preprocessor(tokens);
-
+    auto c = Preprocessor(Tokenizer("SELECT /**/ FROM 1 --"));
     assert(c.front() == "SELECT");
     c.popFront();
     assert(c.front() == "FROM");
