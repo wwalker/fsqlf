@@ -1,36 +1,40 @@
 module tokenizer;
-
+/*
+Implement types and functions for splitting string into 3 types of tokens: Spacing, Comments, Other
+*/
 
 import types;
 import higher_types;
 
 
 
+
 enum TokenType {spacing,comment,other};
 
 
-/* Input range wich breaks up SQL text into tokens
-   e.g.
-   if constructed from "SELECT 1 --xx",
-   it would return tokens (SELECT)( )(1)( )(--xx)
-   each token has a type
-*/
+
+
+
+/* InputRange contructed from SQL text string and returning tokenized content
+   3 types of tokens are recognized: Spacing, Comments, Other.
+   e.g. if constructed from "SELECT 1 --xx", it would return tokens: (SELECT)( )(1)( )(--xx) */
 struct Tokenizer
 {
 private:
-    string p_sqlText;
-    alias Token!TokenType ResultToken;
-    ResultToken p_cachedFront;
-    //string
+    string p_sqlText; // input text to be tokenized
+    alias Token!TokenType ResultToken; // alias for front() result type
+    ResultToken p_cachedFront; // cached value
+
 
 public:
+    /* Tokenizer constructor from sql text stored in string */
     this(string sqlText)
     {
         p_sqlText = sqlText;
     }
 
 
-    /* Get front token, which can be one of types {spacing,comment,other}*/
+    /* Extract token from front of the text string.  Result is cached */
     auto front()
     {
         if(p_cachedFront.empty)
@@ -41,6 +45,7 @@ public:
     }
 
 
+    /* Drop content used for result of front(), so next call to front() would return new token */
     void popFront()
     {
         import std.range;
@@ -50,6 +55,24 @@ public:
     }
 
 
+    /* Return TRUE if no more elements can be returned (end of input SQL string was reached) */
+    @property
+    bool empty()
+    {
+        return p_sqlText.length == 0;
+    }
+
+
+    /*  Convert Tokenizer to string. At the moment for debuging purposes */
+    string toString()
+    {
+        import std.algorithm;
+        return std.algorithm.reduce!q{a~"("~b.text~")"}("",this);
+    }
+
+
+private:
+    /* Extract token from front of the string. popFront() only calls this function and its caches the result */
     auto getFrontToken()
     {
         string spcResult = getFront.Spacing(p_sqlText);
@@ -68,29 +91,6 @@ public:
         auto paterns = std.array.array(toPaternRange(keywordList.values));
         return ResultToken(TokenType.other, getFront.Other(p_sqlText, paterns)); // includes string end
     }
-
-
-    @property
-    auto empty()
-    {
-        return p_sqlText.length == 0;
-    }
-
-
-    string toString()
-    {
-        import std.algorithm;
-        return std.algorithm.reduce!q{a~"("~b.text~")"}("",this);
-    }
-
-
-   /+ void debug_print()
-    {
-        import std.stdio;
-        Tokenizer copy = this;
-        writeln("Tokenizer:");
-        writeln(copy.toString());
-    }+/
 }
 unittest
 {
@@ -113,17 +113,23 @@ unittest
 
 
 
-
 private:
 
 
 
 
 
-/* Define couple of routines which extract specific content from the front of the string */
+/* Define couple of routines which extract content from the front of input string.
+   All functions are static, class has no data-members */
 class getFront
 {
-    static string Spacing(in string input)
+public:
+    /* Extract spacing characters from the front of the string.
+       Everything till first non-spacing character is extracted.
+       If there are no spacing characters at the front of the input string, return empty string.
+       Meaning of "spacing" includes: spaces,tabs,new lines */
+    static
+    string Spacing(in string input)
     {
         import std.regex;
         auto spMatch = std.regex.match(input,r"^\s+");
@@ -143,7 +149,12 @@ class getFront
     }
 
 
-    static string Comment(in string input)
+    /* Extract comment from the front of the string.
+       If there is no comment at the front of the input string, return empty string.
+       Both comment types are recognized: oneline and multiline.
+       Unterminated comments are also recognized */
+    static
+    string Comment(in string input)
     {
         string cmtOneline = getFront.CommentOneline(input);
         if(cmtOneline.length == 0)
@@ -164,9 +175,19 @@ class getFront
 
 
     import std.regex;
-    static string Other(in string input, std.regex.Regex!(char)[] paterns)
+    /* Extract any other SQL token from front of the string (other then spacing or comment).
+       If input is empty, return empty string.
+       Other tokens may be:
+       - SQL-string  (e.g. 'abc')
+       - SQL-doublequoted-identifier  (e.g. "abc")
+       - number
+       - puntuation characters and operators (e.g. +*-/,)
+       - rezerved SQL words (e.g. LEFT, GROUP, BY, JOIN, OUTER)
+       - any word made of non-spacing characters (matched with last priority, i.e. only if none of above were matched)
+       This function should be called only after Comment and Spacing functions failed to extract content */
+    static
+    string Other(in string input, std.regex.Regex!(char)[] paterns)
     {
-
         if(input == "") return "";
 
         /* try match paterns */
@@ -180,7 +201,7 @@ class getFront
             }
         }
 
-        /* if no patern was matched, fallback solution - match any non-space sequence till word boundry */
+        /* if no patern was matched, match any non-space sequence till word boundry */
         auto fallbackMatch = std.regex.match(input, `[^ \t\r\n]+\b`);
         if(fallbackMatch) return fallbackMatch.captures.hit();
         assert(0);
@@ -198,9 +219,11 @@ class getFront
 
 
 private:
-
-
-    static string DelimitedString(in string input, in string delimStart, in string delimEnd)
+    /* Extract delimeted substring from front of the string.
+       If starting delimiter is not found at the front of the input string, return empty string.
+       If ending delimiter is missing, then whole input is returned (given that starting delimiter was found) */
+    static
+    string DelimitedString(in string input, in string delimStart, in string delimEnd)
     {
         import std.string;
         if(input.length < delimStart.length || input[0..2] != delimStart)
@@ -220,13 +243,21 @@ private:
     }
 
 
-    static string CommentOneline(in string input)
+    /* Extract oneline comment from the front of the string.
+       If there is no comment at the front of the input string, return empty string.
+       Oneline comments starts with "--" and ends with new-line or end of the input string */
+    static
+    string CommentOneline(in string input)
     {
         return getFront.DelimitedString(input, "--", "\n"); // TODO: handle different lineendings
     }
 
 
-    static string CommentMultiline(in string input)
+    /* Extract multiline comment from the front of the string.
+       If there is no comment at the front of the input string, return empty string.
+       Multiline comment starts with "/*" and ends with "* /" or end of the input string */
+    static
+    string CommentMultiline(in string input)
     {
         return getFront.DelimitedString(input, "/*", "*/");
     }
@@ -234,6 +265,10 @@ private:
 
 
 
+
+
+/* Create range of regex paterns fron collection of "Keyword" elements
+   Returns range type processed by "map" and "joiner" */
 auto toPaternRange(Keyword[] kw_collection)
 {
     import std.algorithm;
@@ -243,8 +278,3 @@ auto toPaternRange(Keyword[] kw_collection)
     auto paterns = map!"a.getPaterns()"(kw_collection); // <- range of ranges
     return joiner(paterns);                             // <- range
 }
-//std.algorithm.reduce!("a ~ b.text")("", resultTokens)
-
-
-
-
