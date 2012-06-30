@@ -71,7 +71,7 @@ struct Token(T)
 {
     T name;
     string text;
-    ulong length;
+    size_t length;
 
     pure this(in T name, in string text)
     {
