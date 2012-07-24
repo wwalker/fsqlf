@@ -9,10 +9,10 @@ SRC=src/fsqlf.d src/tokenizer.d src/higher_types.d src/types.d src/preprocessor.
 
 #  BUILD
 fsqlf: $(SRC)
-	dmd -unittest -offsqlf $(SRC)
+	dmd -w -unittest -offsqlf $(SRC)
 
 fsqlf-gdb: $(SRC)
-	dmd -unittest -g -debug=1 $(SRC)
+	dmd -w -unittest -g -debug=1 $(SRC)
 
 
 all: fsqlf
