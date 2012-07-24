@@ -173,10 +173,8 @@ struct Keyword
         {
             case KeywordType.simple:
                 return this.matchAgainstRegex(txt);
-                break;
             case KeywordType.composite:
                 return this.matchAgainstText(txt);
-                break;
             default: assert(0);
         }
     }
