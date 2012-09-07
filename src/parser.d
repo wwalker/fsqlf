@@ -10,10 +10,11 @@ import higher_types;
 
 
 
-/* Element of Parser - basicaly */
+/* Element of Parser - logical keyword (could be made of many words e.g. LEFT JOIN) */
 struct ParserResult
 {
 private:
+public:
     string[] p_leedingWhitespaces; // spaces,tabs,newlines
     string[] p_leedingComments;
     string p_Text;
@@ -34,8 +35,14 @@ public:
         import std.array;
         p_leedingWhitespaces = array(joiner(map!"a.leedingWhitespaces"(prep)));
         p_leedingComments    = array(joiner(map!"a.leedingComments"(prep)));
-        p_Text      = cast(string) array(joiner(map!"a.tokenText"(prep)," ")); // FIXME - somehow remove cast. for some reason result of rside is of type dchar[]
+        p_Text      = reduce!q{a~=" "~b}(map!q{a.tokenText}(prep));
         p_Type      = kwName;
+    }
+
+    /* Equality test against string */
+    pure auto opEquals(string text)
+    {
+        return p_Text == text;
     }
 }
 
@@ -59,7 +66,7 @@ public:
     /* Return multiword keyword found at the front of preprocessed content */
     auto front()
     {
-        immutable auto MAX_WORDS=3; // longest SQL keywords that came to mind are joins made of 3 words (e.g. "LEFT OUTER JOIN").
+        immutable auto MAX_WORDS=3; // Longest SQL keywords are joins made of 3 words (e.g. "LEFT OUTER JOIN").
 
         import std.algorithm;
         import std.range;
@@ -69,7 +76,7 @@ public:
 
         auto sqlTokens = array(take(map!"a.tokenText"(p_preprocessedTokens),MAX_WORDS));
 
-        /* loop to find keyword which matches something from the front of the input */
+        /* Find keyword which matches something from the front of the input */
         foreach(kw ; k.values)
         {
             auto wordCount = kw.matchedWordcount(sqlTokens);
@@ -79,7 +86,7 @@ public:
             }
         }
 
-        // if nothing matched then just take 1 front token
+        // If nothing matched then just take 1 front token
         return ParserResult(array(take(p_preprocessedTokens,1)));
     }
 
@@ -91,7 +98,7 @@ public:
         auto cached_front = this.front();
         if(cached_front.p_Type != "other")
         {
-            for(auto i = split(cached_front.p_Text).length ; i>0 ; --i) // pop for each matched word
+            for(auto i = split(cached_front.Text).length ; i>0 ; --i) // pop for each matched word
             {
                 p_preprocessedTokens.popFront();
             }
@@ -117,4 +124,21 @@ public:
         import std.algorithm;
         return std.algorithm.reduce!q{a~"("~b.Text~")"}("",this);
     }
+}
+unittest
+{
+    import std.range;
+    import tokenizer;
+    static assert(isInputRange!Parser);
+    auto c = Preprocessor(Tokenizer("SELECT /**/ FROM 1 --"));
+    assert(c.front() == "SELECT");
+    assert(c.front() != "SELECTS");
+    c.popFront();
+    assert(c.front() == "FROM");
+    c.popFront();
+    assert(c.front() == "1");
+    c.popFront();
+    assert(c.front() == "");
+    c.popFront();
+    assert(c.empty);
 }
