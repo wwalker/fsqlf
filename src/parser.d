@@ -1,7 +1,6 @@
+/* Module for recognising multiword keywords (e.g. "LEFT OUTER JOIN") */
 module parser;
-/*
-Implement types and functions for recognizing multiword keywords (e.g. "LEFT OUTER JOIN")
-*/
+
 
 import preprocessor;
 import higher_types;

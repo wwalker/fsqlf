@@ -1,4 +1,3 @@
-module grammar;
 /*
 To apply context-sensitive formatting, it is needed to recognize SQL constructs
 (Example of context-sensitive formatting would be putting new line before left paranthesis only when it contains subquery)
@@ -14,6 +13,8 @@ Examples of list manifestations in SQL:
     SELECT keyword is followed by a list of columns separated by commas
     FROM keyword is followed by list of objects (tables/views/subqueries with ON conditions) separated by JOIN keywords or commas
 */
+module grammar;
+
 
 
 /*
@@ -71,9 +72,9 @@ alias string kw_type;
 alias string[] t_resultElement;
 
 
-/* routines whitch implement input-range primitives for array
-   will be used only temporarily until module is integerated with other modules
-*/
+/* Routines which implement input-range primitives for array
+   will be used only temporarily until module is integerated with the rest of the program
+ */
 in_element front(in_type input){
     return input[0];
 }
@@ -97,11 +98,19 @@ in_element getFrontThenPop(ref in_type input){
 
 
 struct Configuration
-{    
+{
     immutable kw_type _start;
-    kw_type[] _separator;
-    kw_type _end;
+    immutable kw_type[] _separator;
+    immutable kw_type _end;
     immutable bool include_end;
+    
+    bool opEquals(Configuration other)
+    {
+        return this._start == other._start
+            && this._end == other._end
+            && this._separator == other._separator
+            && this.include_end == other.include_end;
+    }
 
     bool isStart(in_element item)
     {
@@ -125,25 +134,31 @@ struct Configuration
 
     enum Element {Start,Separator,End, Other}
 
+    /* Return type of the element, based on current configuration */
     Element elementType(in_element item)
     {
-    import std.stdio;
-    writeln (this);
         if(item == _start)
+    {
             return Element.Start;
+    }
         else if(item == _separator[0])
+    {
             return Element.Separator;
+    }
         else if(item == _end)
+    {
             return Element.End;
+    }
         else
+    {
             return Element.Other;
+    }
     }
 
     // standart configurations
     enum SELECT = Configuration("SELECT",[","],"FROM",false);
     enum PARANTHESIS = Configuration("(",[","],")",true);
     enum NONE = Configuration(" ",[" "]," ",false);
-    enum Template {SELECT , PARANTHESIS}
 }
 
 
@@ -152,11 +167,17 @@ struct Configuration
 Configuration selectConfiguration(in_element text)
 {
     if(Configuration.SELECT.isStart(text))
+    {
         return Configuration.SELECT;
+    }
     else if(Configuration.PARANTHESIS.isStart(text))
+    {
         return Configuration.PARANTHESIS;
+    }
     else
+    {
         return Configuration.NONE;
+    }
 }
 
 
@@ -290,8 +311,10 @@ private:
     Node getItem()
     {
         auto result = new Leaf;
+
         switch( _conf.elementType( _input.front() )  )
         {
+            /* Elements of configuration (start/separator/end) */
             case Configuration.Element.End:         // NOTE: Fall-through "case";
                 _inputRangeEnd = true;
                 goto case Configuration.Element.Start;
@@ -300,19 +323,26 @@ private:
                 result ~= _input.getFrontThenPop();
                 break;
 
+            /* Anything other, will can be:
+             * a) start new substree
+             * b) just usual element of current node
+            */
             case Configuration.Element.Other:
                 auto selectedConf = selectConfiguration( _input.front() );
+                /* a) start new substree */
                 if( selectedConf != Configuration.NONE )
                 {
                     return new SubTree(_input, selectedConf);
                 }
+                /* b) just usual element of current node */
                 while ( !_input.empty && !isListItemEnd( _input.front() ) )
                 {
                     result ~= _input.getFrontThenPop();
                 }
                 break;
 
-            default:assert(0);
+            default:
+                assert(0);
         }
 
         // if configuration is end-inclusive then do not end list yet even if ending element is found
