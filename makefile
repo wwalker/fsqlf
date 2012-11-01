@@ -1,6 +1,9 @@
 PROJECTFOLDER=fsqlf
 
-SRC=src/fsqlf.d src/tokenizer.d src/higher_types.d src/types.d src/preprocessor.d src/dbg.d src/parser.d src/grammar.d
+SRC=src/fsqlf.d
+SRC+=src/lex/tokenizer.d src/lex/preprocessor.d
+SRC+=src/dbg.d src/parser.d src/grammar.d
+SRC+=src/higher_types.d src/types.d
 
 
 
