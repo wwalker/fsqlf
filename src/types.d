@@ -64,9 +64,7 @@ struct KeywordText
     {
         import std.algorithm:map;
         import std.array:split,array;
-        alias std.array.array array;
-        alias std.algorithm.map map;
-        alias std.array.split split;
+
         Regex!char createFrontWordRegex(string a){ return regex("^" ~ a ~ r"\b","i"); }
 
         auto paterns = map!createFrontWordRegex(split(m_longText) ~ split(m_shortText));
