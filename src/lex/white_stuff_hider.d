@@ -1,17 +1,19 @@
-module preprocessor;
-/*
-Implement types and functions for organizing tokens, so spacing and comments would not get in the way while recognizing multiword keywords (e.g. LEFT JOIN)
-*/
+/* Module Goal is to separate:
+ *  - white-stuff tokens (comments and spacing)
+ *  - graphical tokens (words, special characters)
+ */
+module lex.white_stuff_hider;
+
 
 import higher_types;
-import tokenizer;
+import lex.tokenizer;
 
 
 
 
 
-/* Element of Preprocessor.  Element consist of leading spaces&comments  and  "functional" text */
-struct PreprocResult
+/* Element of WhiteStuffHider.  White-Stuff (comments&whitespaces) is attached to "real" tokens */
+struct Result
 {
 private:
     string[] p_leedingWhitespaces; // spaces,tabs,newlines
@@ -77,7 +79,7 @@ public:
    Spacing, Comments are called "non-functional" part of SQL as they don't influence result of the query
    e.g. if constructed from tokens "(SELECT)( )(1)( )(--xx)", it will return "(SELECT)(1)()", where
    "(1)" will contain its leeding space, and "()" will contain its leeding space and comment */
-struct Preprocessor
+struct WhiteStuffHider
 {
 import std.range;
 private:
@@ -93,9 +95,9 @@ public:
 
 
     /* Get organized/grouped tokens, consisting of  leeding spacing&comments  and  "functional" text */
-    PreprocResult front()
+    Result front()
     {
-        PreprocResult result;
+        Result result;
         foreach(token ; p_sqlTokens)
         {
             result.addDispatchToken(token);
@@ -124,7 +126,7 @@ public:
     }
 
 
-    /* Convert Preprocessor to string. At the moment for debuging purposes */
+    /* Convert range to string. At the moment for debuging purposes */
     string toString()
     {
         import std.algorithm;
@@ -135,8 +137,8 @@ unittest
 {
     import std.range;
 
-    static assert(isInputRange!Preprocessor);
-    auto c = Preprocessor(Tokenizer("SELECT /**/ FROM 1 --"));
+    static assert(isInputRange!WhiteStuffHider);
+    auto c = WhiteStuffHider(Tokenizer("SELECT /**/ FROM 1 --"));
     assert(c.front() == "SELECT");
     c.popFront();
     assert(c.front() == "FROM");

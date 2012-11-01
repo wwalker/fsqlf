@@ -1,7 +1,6 @@
-module tokenizer;
-/*
-Implement types and functions for splitting string into 3 types of tokens: Spacing, Comments, Other
-*/
+/* Module goal is to split string into tokens */
+module lex.tokenizer;
+
 
 import types;
 import higher_types;

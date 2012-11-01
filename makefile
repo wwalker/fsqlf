@@ -1,8 +1,8 @@
 PROJECTFOLDER=fsqlf
 
 SRC=src/fsqlf.d
-SRC+=src/lex/tokenizer.d src/lex/preprocessor.d
-SRC+=src/dbg.d src/parser.d src/grammar.d
+SRC+=src/lex/tokenizer.d src/lex/white_stuff_hider.d src/lex/multiword_keywords.d
+SRC+=src/dbg.d  src/grammar.d
 SRC+=src/higher_types.d src/types.d
 
 

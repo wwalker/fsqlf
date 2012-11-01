@@ -1,16 +1,17 @@
 /* Module for recognising multiword keywords (e.g. "LEFT OUTER JOIN") */
-module parser;
+module lex.multiword_keywords;
 
 
-import preprocessor;
+
+import lex.white_stuff_hider;
 import higher_types;
 
 
 
 
 
-/* Element of Parser - logical keyword (could be made of many words e.g. LEFT JOIN) */
-struct ParserResult
+/* Element of MultiwordKeywords - logical keyword (could be made of many words e.g. LEFT JOIN) */
+struct Result
 {
 private:
 public:
@@ -28,7 +29,7 @@ public:
     }
 
     /* Construct from preprocessed content and name of the keyword */
-    this(PreprocResult[] prep, string kwName="other")
+    this(lex.white_stuff_hider.Result[] prep, string kwName="other")
     {
         import std.algorithm;
         import std.array;
@@ -51,13 +52,13 @@ public:
 
 /* InputRange constructed from preprocessed tokens and returning recognized multiword keywords.
    e.g. if constructed from "(LEFT)(JOIN)" returns "(LEFT JOIN)". Also returned structure contains keyword name */
-struct Parser
+struct MultiwordKeywords
 {
 private:
-    Preprocessor p_preprocessedTokens;
+    WhiteStuffHider p_preprocessedTokens;
 public:
     /* Construct from preprocessed content */
-    this(in Preprocessor prep )
+    this(in WhiteStuffHider prep )
     {
         p_preprocessedTokens = prep;
     }
@@ -81,12 +82,12 @@ public:
             auto wordCount = kw.matchedWordcount(sqlTokens);
             if(wordCount > 0)
             {
-                return ParserResult(array(take(p_preprocessedTokens,wordCount)), kw.kwName);
+                return Result(array(take(p_preprocessedTokens,wordCount)), kw.kwName);
             }
         }
 
         // If nothing matched then just take 1 front token
-        return ParserResult(array(take(p_preprocessedTokens,1)));
+        return Result(array(take(p_preprocessedTokens,1)));
     }
 
 
@@ -127,9 +128,9 @@ public:
 unittest
 {
     import std.range;
-    import tokenizer;
-    static assert(isInputRange!Parser);
-    auto c = Preprocessor(Tokenizer("SELECT /**/ FROM 1 --"));
+    import lex.tokenizer;
+    static assert(isInputRange!MultiwordKeywords);
+    auto c = WhiteStuffHider(Tokenizer("SELECT /**/ FROM 1 --"));
     assert(c.front() == "SELECT");
     assert(c.front() != "SELECTS");
     c.popFront();
