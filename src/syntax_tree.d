@@ -13,7 +13,7 @@ Examples of list manifestations in SQL:
     SELECT keyword is followed by a list of columns separated by commas
     FROM keyword is followed by list of objects (tables/views/subqueries with ON conditions) separated by JOIN keywords or commas
 */
-module grammar;
+module syntax_tree;
 
 
 
@@ -189,6 +189,7 @@ interface Node
     @property bool empty();
     void clear();
 }
+
 
 class Leaf : Node
 {

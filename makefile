@@ -2,7 +2,7 @@ PROJECTFOLDER=fsqlf
 
 SRC=src/fsqlf.d
 SRC+=src/lex/tokenizer.d src/lex/white_stuff_hider.d src/lex/multiword_keywords.d
-SRC+=src/dbg.d  src/grammar.d
+SRC+=src/dbg.d  src/syntax_tree.d
 SRC+=src/higher_types.d src/types.d
 
 
