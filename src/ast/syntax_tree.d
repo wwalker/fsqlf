@@ -13,9 +13,10 @@ Examples of list manifestations in SQL:
     SELECT keyword is followed by a list of columns separated by commas
     FROM keyword is followed by list of objects (tables/views/subqueries with ON conditions) separated by JOIN keywords or commas
 */
-module syntax_tree;
+module ast.syntax_tree;
 
 
+import ast.node_type;
 
 /*
 
@@ -42,15 +43,6 @@ Paranthesis
 --select statement
 --nothing
 
-DDL statements
-
-class NonTerminalElement
-{
-    auto getRange(){ assert 0; }
-    void setwParse(in char[] input) { assert(0); }
-    void toString(in char[] input) { assert(0); }
-}
-
 class Select : ChildOfParanthised
 
 class Column : ChildOfSelect
@@ -66,10 +58,7 @@ class Case : ChildOfColumn
 */
 
 
-alias string[] in_type;
-alias string in_element;
-alias string kw_type;
-alias string[] t_resultElement;
+
 
 
 /* Routines which implement input-range primitives for array
@@ -96,89 +85,6 @@ in_element getFrontThenPop(ref in_type input){
 
 
 
-
-struct Configuration
-{
-    immutable kw_type _start;
-    immutable kw_type[] _separator;
-    immutable kw_type _end;
-    immutable bool include_end;
-    
-    bool opEquals(Configuration other)
-    {
-        return this._start == other._start
-            && this._end == other._end
-            && this._separator == other._separator
-            && this.include_end == other.include_end;
-    }
-
-    bool isStart(in_element item)
-    {
-        return  item == _start;
-    }
-
-    bool isSeparator(in_element item)
-    {
-        return  item == _separator[0];
-    }
-
-    bool isEnd(in_element item)
-    {
-        return  item == _end;
-    }
-
-    bool isListItemEnd(in_element item)
-    {
-        return  isEnd( item ) || isSeparator( item );
-    }
-
-    enum Element {Start,Separator,End, Other}
-
-    /* Return type of the element, based on current configuration */
-    Element elementType(in_element item)
-    {
-        if(item == _start)
-    {
-            return Element.Start;
-    }
-        else if(item == _separator[0])
-    {
-            return Element.Separator;
-    }
-        else if(item == _end)
-    {
-            return Element.End;
-    }
-        else
-    {
-            return Element.Other;
-    }
-    }
-
-    // standart configurations
-    enum SELECT = Configuration("SELECT",[","],"FROM",false);
-    enum PARANTHESIS = Configuration("(",[","],")",true);
-    enum NONE = Configuration(" ",[" "]," ",false);
-}
-
-
-
-
-Configuration selectConfiguration(in_element text)
-{
-    if(Configuration.SELECT.isStart(text))
-    {
-        return Configuration.SELECT;
-    }
-    else if(Configuration.PARANTHESIS.isStart(text))
-    {
-        return Configuration.PARANTHESIS;
-    }
-    else
-    {
-        return Configuration.NONE;
-    }
-}
 
 
 
@@ -245,7 +151,7 @@ private:
     Configuration _conf;
 
     Node _cachedFront;
-    bool _inputRangeEnd;
+    bool _forceEmpty;
 
 public:
     this(ref in_type input, Configuration conf)
@@ -256,7 +162,7 @@ public:
         _conf = conf;
         //conf(startDelim,separator,end,include_end);
 
-        _inputRangeEnd = false;
+        _forceEmpty = false;
         _cachedFront = new Leaf;
     }
 
@@ -278,7 +184,7 @@ public:
     @property
     bool empty()
     {
-        return  _input.empty || _inputRangeEnd;
+        return  _input.empty || _forceEmpty;
     }
 
     void clear()
@@ -317,25 +223,22 @@ private:
         {
             /* Elements of configuration (start/separator/end) */
             case Configuration.Element.End:         // NOTE: Fall-through "case";
-                _inputRangeEnd = true;
+                _forceEmpty = true;
                 goto case Configuration.Element.Start;
             case Configuration.Element.Start:
             case Configuration.Element.Separator:
                 result ~= _input.getFrontThenPop();
                 break;
 
-            /* Anything other, will can be:
-             * a) start new substree
-             * b) just usual element of current node
-            */
+            /* Anything other, will can be:*/
             case Configuration.Element.Other:
                 auto selectedConf = selectConfiguration( _input.front() );
-                /* a) start new substree */
+                /* ..a) start new substree */
                 if( selectedConf != Configuration.NONE )
                 {
-                    return new SubTree(_input, selectedConf);
+                    return new SubTree( _input, selectedConf );
                 }
-                /* b) just usual element of current node */
+                /* ..b) just usual element of current node */
                 while ( !_input.empty && !isListItemEnd( _input.front() ) )
                 {
                     result ~= _input.getFrontThenPop();
@@ -347,9 +250,9 @@ private:
         }
 
         // if configuration is end-inclusive then do not end list yet even if ending element is found
-        if( !_input.empty  &&  _conf.isEnd( _input.front() )  &&  !_conf.include_end )
+        if( !_input.empty  &&  _conf.isEnd( _input.front() )  &&  _conf.include_end == End.exclusive )
         {
-            _inputRangeEnd = true;
+            _forceEmpty = true;
         }
 
         return result;
@@ -359,7 +262,12 @@ unittest
 {
     import std.stdio;
     import std.array;
-    string[] input = array( splitter("SELECT 1 , ( 2 , 3 x ) , 4 FROM") );
+    string[] input = array( splitter("SELECT 1 , ( 2 , 3 x ) , 4 , 5 FROM ( SELECT 1 t UNION ALL SELECT 2 t ) a") );
     writeln( new SubTree( input, Configuration.SELECT ) );
     writeln("\n\n");
 }
+
+
+
+
+
