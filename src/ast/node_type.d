@@ -36,9 +36,9 @@ Configuration selectConfiguration(in_element text)
 
 struct Configuration
 {
-    immutable kw_type _start;
+    immutable kw_type[] _start;
     immutable kw_type[] _separator;
-    immutable kw_type _end;
+    immutable kw_type[] _end;
     immutable End include_end;
 
     bool opEquals(Configuration other)
@@ -51,21 +51,25 @@ struct Configuration
 
     bool isStart(in_element item)
     {
-        return  item == _start;
+        import std.algorithm:canFind;
+        return  canFind( _start, item );
     }
 
     bool isSeparator(in_element item)
     {
-        return  item == _separator[0];
+        import std.algorithm:canFind;
+        return  canFind( _separator, item );
     }
 
     bool isEnd(in_element item)
     {
-        return  item == _end;
+        import std.algorithm:canFind;
+        return  canFind( _end, item );
     }
 
     bool isListItemEnd(in_element item)
     {
+        import std.algorithm:canFind;
         return  isEnd( item ) || isSeparator( item );
     }
 
@@ -95,8 +99,35 @@ struct Configuration
     }
 
     // standart configurations
-    enum SELECT = Configuration( "SELECT", [","], "FROM", End.exclusive );
-    enum PARANTHESIS = Configuration( "(", [","], ")", End.inclusive );
-    enum FROM = Configuration( "FROM", [",", "JOIN"], ")", End.inclusive );
-    enum NONE = Configuration( " ", [" "], " ", End.inclusive );
+    enum SELECT = Configuration( ["SELECT"], [","], ["FROM", ")", "UNION", "SELECT" ], End.exclusive );
+    enum PARANTHESIS = Configuration( ["("], [",", "UNION"], [")"], End.inclusive );
+    enum FROM = Configuration( ["FROM"], [",", "JOIN"], [")" , "UNION", "SELECT"], End.exclusive );
+    enum NONE = Configuration( [" "], [" "], [" "], End.inclusive );
 }
+
+
+
+
+/* Routines which implement input-range primitives for array
+ * will be used only temporarily until module is integerated with the rest of the program
+ */
+
+in_element front(in_type input){
+    return input[0];
+}
+
+bool empty(in_type input){
+    return input.length == 0;
+}
+
+void popFront(ref in_type input){
+    import std.range;
+    input = drop(input,1);
+}
+
+in_element getFrontThenPop(ref in_type input){
+    auto cache = front(input);
+    popFront(input);
+    return cache;
+}
+

@@ -13,135 +13,15 @@ Examples of list manifestations in SQL:
     SELECT keyword is followed by a list of columns separated by commas
     FROM keyword is followed by list of objects (tables/views/subqueries with ON conditions) separated by JOIN keywords or commas
 */
-module ast.syntax_tree;
+module ast.subtree;
 
 
 import ast.node_type;
-
-/*
-
-Section starts (can end other sections)
-Group-A - Contains list of one or more items separated by separators:
-SELECT
-FROM
-WHERE
-GROUP BY
-ORDER BY
-QUALIFY
-
-Group-B - Contains single item
-UPDATE
-INSERT INTO
-DELETE FROM
-SAMPLE
-
-Paranthesis
-- can contain
---paranthesis
---comma separated list
---join separated list
---select statement
---nothing
-
-class Select : ChildOfParanthised
-
-class Column : ChildOfSelect
-
-class Paranthised : ChildOfColumn
-                   ,ChildOfParanthised
-                   ,ChildOfCase
+import ast.node;
+import ast.leaf;
 
 
-class Case : ChildOfColumn
-            ,ChildOfParanthised
-            ,ChildOfCase
-*/
-
-
-
-
-
-/* Routines which implement input-range primitives for array
-   will be used only temporarily until module is integerated with the rest of the program
- */
-in_element front(in_type input){
-    return input[0];
-}
-
-bool empty(in_type input){
-    return input.length == 0;
-}
-
-void popFront(ref in_type input){
-    import std.range;
-    input = drop(input,1);
-}
-
-in_element getFrontThenPop(ref in_type input){
-    auto cache = front(input);
-    popFront(input);
-    return cache;
-}
-
-
-
-
-
-
-
-interface Node
-{
-    string toString();
-    @property bool empty();
-    void clear();
-}
-
-
-class Leaf : Node
-{
-    in_type _payload;
-    this(){}
-
-    this(in_element content)
-    {
-        _payload ~= content;
-    }
-
-    Leaf opCatAssign(in_element anOther)
-    {
-        _payload ~= anOther;
-        return this;
-    }
-
-    override
-    string toString()
-    {
-        import std.algorithm;
-        alias map!q{"\""~a~"\""} quote;
-        alias reduce!q{a~", "~b.text} joinByCommas;
-        return joinByCommas( quote(_payload) );
-    }
-
-    @property
-    bool empty()
-    {
-        return  _payload.length == 0;
-    }
-
-    void clear()
-    {
-        _payload = [];
-    }
-}
-unittest
-{
-    auto x = new Leaf;
-    x ~= "str1";
-    x ~= "str2";
-    assert(x.toString() == "\"str1\", \"str2\"");
-}
-
-
+/* Given initial config (e.g. for SELECT statemnt) and input it creates recursive structure, representing */
 class SubTree : Node
 {
 private:
@@ -193,19 +73,20 @@ public:
     }
 
     override
-    string toString()
+    string toStringIndented( int indentation_level )
     {
         import std.algorithm;
         import std.array;
+        import std.conv;
 
         string b(string txt) { return "{"~txt~"}";}
-        string n(string txt) { return "\n"~txt;}
+        string n(string txt, int indent_mod = 0) { return "\n" ~ indent(indentation_level+indent_mod) ~ txt; }
 
         string result;
-        foreach(x;this){
-            result ~= n( b( x.toString() ) );
+        foreach( childOfThis ; this ){
+            result ~= n(  childOfThis.toStringIndented(indentation_level+1) );
         }
-        return "\n\nTree:" ~ result ~ "\n\n";
+        return n("Subtree",-1) ~ n("{",-1) ~ result ~ n("}",-1);
     }
 
 
@@ -262,8 +143,9 @@ unittest
 {
     import std.stdio;
     import std.array;
-    string[] input = array( splitter("SELECT 1 , ( 2 , 3 x ) , 4 , 5 FROM ( SELECT 1 t UNION ALL SELECT 2 t ) a") );
-    writeln( new SubTree( input, Configuration.SELECT ) );
+    string[] input = array( splitter("SELECT 1 , ( 2 , 3 x ) , 4 , 5 FROM ( SELECT 1 t UNION SELECT 2 t ) a") );
+    auto st = new SubTree( input, Configuration.NONE );
+    writeln( st );
     writeln("\n\n");
 }
 
@@ -271,3 +153,20 @@ unittest
 
 
 
+/*
+Section starts (can end other sections)
+
+Group-A - Contains list of one or more items separated by separators:
+ SELECT, FROM, WHERE, GROUP BY, ORDER BY, QUALIFY
+
+Group-B - Contains single item:
+ UPDATE, INSERT INTO, DELETE FROM, SAMPLE
+
+Paranthesis can contain
+ paranthesis, comma separated list, join separated list, select statement, nothing
+
+class Select : ChildOfParanthised
+class Column : ChildOfSelect
+class Paranthised : ChildOfColumn, ChildOfParanthised, ChildOfCase
+class Case : ChildOfColumn, ChildOfParanthised, ChildOfCase
+*/
