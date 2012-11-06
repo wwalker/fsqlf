@@ -25,6 +25,7 @@ import ast.leaf;
 class SubTree : Node
 {
 private:
+    SubTree _parent;
     in_type _input;
     in_type* _input_adress;
 
@@ -34,11 +35,12 @@ private:
     bool _forceEmpty;
 
 public:
-    this(ref in_type input, Configuration conf)
+    static SubTree no_parent = null;
+    this(SubTree parent, ref in_type input, Configuration conf)
     {
+        _parent = parent;
         _input = input;
         _input_adress = &input;
-
         _conf = conf;
         //conf(startDelim,separator,end,include_end);
 
@@ -111,13 +113,13 @@ private:
                 result ~= _input.getFrontThenPop();
                 break;
 
-            /* Anything other, will can be:*/
+            /* Anything other, will  be:*/
             case Configuration.Element.Other:
                 auto selectedConf = selectConfiguration( _input.front() );
-                /* ..a) start new substree */
+                /* ..a) start of new substree */
                 if( selectedConf != Configuration.NONE )
                 {
-                    return new SubTree( _input, selectedConf );
+                    return new SubTree( this, _input, selectedConf );
                 }
                 /* ..b) just usual element of current node */
                 while ( !_input.empty && !isListItemEnd( _input.front() ) )
@@ -131,7 +133,10 @@ private:
         }
 
         // if configuration is end-inclusive then do not end list yet even if ending element is found
-        if( !_input.empty  &&  _conf.isEnd( _input.front() )  &&  _conf.include_end == End.exclusive )
+        if( !_input.empty
+            &&  _conf.isEnd( _input.front() )
+            &&  _conf.include_end == End.exclusive
+            )
         {
             _forceEmpty = true;
         }
@@ -144,7 +149,7 @@ unittest
     import std.stdio;
     import std.array;
     string[] input = array( splitter("SELECT 1 , ( 2 , 3 x ) , 4 , 5 FROM ( SELECT 1 t UNION SELECT 2 t ) a") );
-    auto st = new SubTree( input, Configuration.NONE );
+    auto st = new SubTree( SubTree.no_parent, input, Configuration.NONE );
     writeln( st );
     writeln("\n\n");
 }
