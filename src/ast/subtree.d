@@ -15,11 +15,11 @@ Examples of list manifestations in SQL:
 */
 module ast.subtree;
 
-
-import ast.node_type;
 import ast.node;
 import ast.leaf;
 
+import ast.subtree_conf;
+import ast.sql_subtrees;
 
 /* Given initial config (e.g. for SELECT statemnt) and input it creates recursive structure, representing */
 class SubTree : Node

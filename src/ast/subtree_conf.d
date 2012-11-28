@@ -1,5 +1,5 @@
 /* Defines node type from abstract syntax tree (e.g. 'select' clause, 'from' clause etc.)  */
-module ast.node_type;
+module ast.subtree_conf;
 
 
 alias string[] in_type;
@@ -12,36 +12,15 @@ enum End {inclusive, exclusive};
 
 
 
-Configuration selectConfiguration(in_element text)
-{
-    if(Configuration.SELECT.isStart(text))
-    {
-        return Configuration.SELECT;
-    }
-    else if(Configuration.PARANTHESIS.isStart(text))
-    {
-        return Configuration.PARANTHESIS;
-    }
-    else if(Configuration.FROM.isStart(text))
-    {
-        return Configuration.FROM;
-    }
-    else
-    {
-        return Configuration.NONE;
-    }
-}
 
-
-
-struct Configuration
+struct subtreeConf
 {
     immutable kw_type[] _start;
     immutable kw_type[] _separator;
     immutable kw_type[] _end;
     immutable End include_end;
 
-    bool opEquals(Configuration other)
+    bool opEquals(subtreeConf other)
     {
         return this._start == other._start
             && this._end == other._end
@@ -69,7 +48,6 @@ struct Configuration
 
     bool isListItemEnd(in_element item)
     {
-        import std.algorithm:canFind;
         return  isEnd( item ) || isSeparator( item );
     }
 
@@ -98,11 +76,7 @@ struct Configuration
         }
     }
 
-    // standart configurations
-    enum SELECT = Configuration( ["SELECT"], [","], ["FROM", ")", "UNION", "SELECT" ], End.exclusive );
-    enum PARANTHESIS = Configuration( ["("], [",", "UNION"], [")"], End.inclusive );
-    enum FROM = Configuration( ["FROM"], [",", "JOIN"], [")" , "UNION", "SELECT"], End.exclusive );
-    enum NONE = Configuration( [" "], [" "], [" "], End.inclusive );
+    enum NONE = subtreeConf( [" "], [" "], [" "], End.inclusive );
 }
 
 
