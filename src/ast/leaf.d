@@ -1,7 +1,7 @@
 module ast.leaf;
 
 
-import ast.node_type;
+import ast.subtree_conf;
 import ast.node;
 
 

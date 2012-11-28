@@ -29,14 +29,14 @@ private:
     in_type _input;
     in_type* _input_adress;
 
-    Configuration _conf;
+    subtreeConf _conf;
 
     Node _cachedFront;
     bool _forceEmpty;
 
 public:
     static SubTree no_parent = null;
-    this(SubTree parent, ref in_type input, Configuration conf)
+    this(SubTree parent, ref in_type input, subtreeConf conf)
     {
         _parent = parent;
         _input = input;
@@ -54,6 +54,15 @@ public:
         {
             _cachedFront = getItem();
             (*_input_adress) = _input; // modify also variable suplied during creation of SubTree
+
+            // if configuration is end-inclusive then do not end list yet even if ending element is found
+            if( !_input.empty
+                &&  _conf.isEnd( _input.front() )
+                &&  _conf.include_end == End.exclusive
+                )
+            {
+                _forceEmpty = true;
+            }
         }
         return _cachedFront;
     }
@@ -66,6 +75,7 @@ public:
     @property
     bool empty()
     {
+
         return  _input.empty || _forceEmpty;
     }
 
@@ -105,19 +115,19 @@ private:
         switch( _conf.elementType( _input.front() )  )
         {
             /* Elements of configuration (start/separator/end) */
-            case Configuration.Element.End:         // NOTE: Fall-through "case";
+            case subtreeConf.Element.End:         // NOTE: Fall-through "case";
                 _forceEmpty = true;
-                goto case Configuration.Element.Start;
-            case Configuration.Element.Start:
-            case Configuration.Element.Separator:
+                goto case subtreeConf.Element.Start;
+            case subtreeConf.Element.Start:
+            case subtreeConf.Element.Separator:
                 result ~= _input.getFrontThenPop();
                 break;
 
             /* Anything other, will  be:*/
-            case Configuration.Element.Other:
+            case subtreeConf.Element.Other:
                 auto selectedConf = selectConfiguration( _input.front() );
                 /* ..a) start of new substree */
-                if( selectedConf != Configuration.NONE )
+                if( selectedConf != subtreeConf.NONE )
                 {
                     return new SubTree( this, _input, selectedConf );
                 }
@@ -132,15 +142,6 @@ private:
                 assert(0);
         }
 
-        // if configuration is end-inclusive then do not end list yet even if ending element is found
-        if( !_input.empty
-            &&  _conf.isEnd( _input.front() )
-            &&  _conf.include_end == End.exclusive
-            )
-        {
-            _forceEmpty = true;
-        }
-
         return result;
     }
 }
@@ -149,7 +150,7 @@ unittest
     import std.stdio;
     import std.array;
     string[] input = array( splitter("SELECT 1 , ( 2 , 3 x ) , 4 , 5 FROM ( SELECT 1 t UNION SELECT 2 t ) a") );
-    auto st = new SubTree( SubTree.no_parent, input, Configuration.NONE );
+    auto st = new SubTree( SubTree.no_parent, input, subtreeConf.NONE );
     writeln( st );
     writeln("\n\n");
 }
