@@ -13,14 +13,14 @@ enum End {inclusive, exclusive};
 
 
 
-struct subtreeConf
+struct SubtreeConf
 {
     immutable kw_type[] _start;
     immutable kw_type[] _separator;
     immutable kw_type[] _end;
     immutable End include_end;
 
-    bool opEquals(subtreeConf other)
+    bool opEquals(SubtreeConf other)
     {
         return this._start == other._start
             && this._end == other._end
@@ -40,15 +40,22 @@ struct subtreeConf
         return  canFind( _separator, item );
     }
 
-    bool isEnd(in_element item)
+    bool isEndOfNode(in_element item)
     {
         import std.algorithm:canFind;
         return  canFind( _end, item );
     }
 
-    bool isListItemEnd(in_element item)
+    bool isEndOfLeaf(in_element item)
     {
-        return  isEnd( item ) || isSeparator( item );
+        return  isEndOfNode( item ) || isSeparator( item );
+    }
+
+    bool isRecognised(in_element item)
+    {
+        return isStart( item )
+            || isSeparator( item )
+            || isEndOfNode( item );
     }
 
     enum Element {Start, Separator, End, Other}
@@ -76,7 +83,7 @@ struct subtreeConf
         }
     }
 
-    enum NONE = subtreeConf( [" "], [" "], [" "], End.inclusive );
+    enum NONE = SubtreeConf( [" "], [" "], [" "], End.inclusive );
 }
 
 

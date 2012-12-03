@@ -40,6 +40,11 @@ class Leaf : Node
     {
         _payload = [];
     }
+    
+    auto lastItem()
+    {
+        return _payload[_payload.length-1];
+    }
 }
 unittest
 {

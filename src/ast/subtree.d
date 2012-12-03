@@ -21,7 +21,7 @@ import ast.leaf;
 import ast.subtree_conf;
 import ast.sql_subtrees;
 
-/* Given initial config (e.g. for SELECT statemnt) and input it creates recursive structure, representing */
+
 class SubTree : Node
 {
 private:
@@ -29,60 +29,70 @@ private:
     in_type _input;
     in_type* _input_adress;
 
-    subtreeConf _conf;
+    SubtreeConf _conf;
 
     Node _cachedFront;
-    bool _forceEmpty;
+    string cachedPreviousLeafsLastItem;
 
 public:
     static SubTree no_parent = null;
-    this(SubTree parent, ref in_type input, subtreeConf conf)
+    this(SubTree parent, ref in_type input, SubtreeConf conf)
     {
         _parent = parent;
         _input = input;
         _input_adress = &input;
         _conf = conf;
-        //conf(startDelim,separator,end,include_end);
 
-        _forceEmpty = false;
         _cachedFront = new Leaf;
     }
 
+
+    @property
+    bool empty()
+    {
+        if( _input.empty )
+        {
+            return true;
+        }
+        else if( _conf.include_end == End.exclusive
+            && _conf.isEndOfNode( _input.front() ) )
+        {
+            return true;
+        }
+        else if( _conf.include_end == End.inclusive
+            && _conf.isEndOfNode( cachedPreviousLeafsLastItem ) )
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+
     auto front()
     {
-        if(_cachedFront.empty)
+        if( _cachedFront.empty )
         {
             _cachedFront = getItem();
             (*_input_adress) = _input; // modify also variable suplied during creation of SubTree
 
-            // if configuration is end-inclusive then do not end list yet even if ending element is found
-            if( !_input.empty
-                &&  _conf.isEnd( _input.front() )
-                &&  _conf.include_end == End.exclusive
-                )
-            {
-                _forceEmpty = true;
-            }
+            cachedPreviousLeafsLastItem = leafsLastItem( _cachedFront );
         }
         return _cachedFront;
     }
+
 
     void popFront()
     {
         _cachedFront.clear;
     }
 
-    @property
-    bool empty()
-    {
-
-        return  _input.empty || _forceEmpty;
-    }
 
     void clear()
     {
         _input.clear();
     }
+
 
     override
     string toStringIndented( int indentation_level )
@@ -103,46 +113,55 @@ public:
 
 
 private:
-    bool isListItemEnd(in_element item)
-    {
-        return  _conf.isEnd( item ) || _conf.isSeparator( item );
-    }
-
     Node getItem()
     {
-        auto result = new Leaf;
-
-        switch( _conf.elementType( _input.front() )  )
+        if( _conf.isRecognised( _input.front() ) )
         {
-            /* Elements of configuration (start/separator/end) */
-            case subtreeConf.Element.End:         // NOTE: Fall-through "case";
-                _forceEmpty = true;
-                goto case subtreeConf.Element.Start;
-            case subtreeConf.Element.Start:
-            case subtreeConf.Element.Separator:
-                result ~= _input.getFrontThenPop();
-                break;
-
-            /* Anything other, will  be:*/
-            case subtreeConf.Element.Other:
-                auto selectedConf = selectConfiguration( _input.front() );
-                /* ..a) start of new substree */
-                if( selectedConf != subtreeConf.NONE )
-                {
-                    return new SubTree( this, _input, selectedConf );
-                }
-                /* ..b) just usual element of current node */
-                while ( !_input.empty && !isListItemEnd( _input.front() ) )
-                {
-                    result ~= _input.getFrontThenPop();
-                }
-                break;
-
-            default:
-                assert(0);
+            return getLeafSingleItem();
         }
+        else if( selectConfiguration( _input.front() ) == SubtreeConf.NONE )
+        {
+            return getLeafMultiItem();
+        }
+        else
+        {
+            auto selectedConf = selectConfiguration( _input.front() );
+            return new SubTree( this, _input, selectedConf );
+        }
+    }
 
-        return result;
+
+    Leaf getLeafMultiItem()
+    {
+        auto leaf = new Leaf;
+        while ( !_input.empty && !_conf.isEndOfLeaf( _input.front() ) )
+        {
+            leaf ~= _input.getFrontThenPop();
+        }
+        return leaf;
+    }
+
+
+    Leaf getLeafSingleItem()
+    {
+        auto leaf = new Leaf;
+        leaf ~= _input.getFrontThenPop();
+        return leaf;
+    }
+
+
+    static string leafsLastItem( Node front )
+    {
+        Leaf frontLeaf = cast(Leaf) front;
+
+        if( frontLeaf && !frontLeaf.empty)
+        {
+            return frontLeaf.lastItem();
+        }
+        else
+        {
+            return "";
+        }
     }
 }
 unittest
@@ -150,7 +169,7 @@ unittest
     import std.stdio;
     import std.array;
     string[] input = array( splitter("SELECT 1 , ( 2 , 3 x ) , 4 , 5 FROM ( SELECT 1 t UNION SELECT 2 t ) a") );
-    auto st = new SubTree( SubTree.no_parent, input, subtreeConf.NONE );
+    auto st = new SubTree( SubTree.no_parent, input, SubtreeConf.NONE );
     writeln( st );
     writeln("\n\n");
 }
