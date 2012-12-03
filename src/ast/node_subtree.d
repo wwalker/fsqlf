@@ -1,25 +1,11 @@
-/*
-To apply context-sensitive formatting, it is needed to recognize SQL constructs
-(Example of context-sensitive formatting would be putting new line before left paranthesis only when it contains subquery)
-This module parses sequence of keywords/tokens and recognizes structure of some SQL calauses/constructs
+module ast.node_subtree;
 
-How this will be done:
-    SQL is interpreted as sequence of lists
-    List is made of: list-items, start-keyword(s), separator-keyword(s), optional end-keyword
-    List-item can it self be a list, so it becomes a tree structure
-    (e.g. in select clause instead of simple column name, there can be complex case stament )
-
-Examples of list manifestations in SQL:
-    SELECT keyword is followed by a list of columns separated by commas
-    FROM keyword is followed by list of objects (tables/views/subqueries with ON conditions) separated by JOIN keywords or commas
-*/
-module ast.subtree;
 
 import ast.node;
-import ast.leaf;
+import ast.node_leaf;
 
-import ast.subtree_conf;
-import ast.sql_subtrees;
+import ast.conf;
+import ast.conf_select;
 
 
 class SubTree : Node
@@ -173,25 +159,3 @@ unittest
     writeln( st );
     writeln("\n\n");
 }
-
-
-
-
-
-/*
-Section starts (can end other sections)
-
-Group-A - Contains list of one or more items separated by separators:
- SELECT, FROM, WHERE, GROUP BY, ORDER BY, QUALIFY
-
-Group-B - Contains single item:
- UPDATE, INSERT INTO, DELETE FROM, SAMPLE
-
-Paranthesis can contain
- paranthesis, comma separated list, join separated list, select statement, nothing
-
-class Select : ChildOfParanthised
-class Column : ChildOfSelect
-class Paranthised : ChildOfColumn, ChildOfParanthised, ChildOfCase
-class Case : ChildOfColumn, ChildOfParanthised, ChildOfCase
-*/

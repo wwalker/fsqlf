@@ -1,7 +1,6 @@
 module ast.node;
 
 
-
 interface Node
 {
     string toStringIndented( int indentation_level );
@@ -25,3 +24,21 @@ string indent( int indentation_level )
     }
     return result_indentation;
 }
+
+/*
+Section starts (can end other sections)
+
+Group-A - Contains list of one or more items separated by separators:
+ SELECT, FROM, WHERE, GROUP BY, ORDER BY, QUALIFY
+
+Group-B - Contains single item:
+ UPDATE, INSERT INTO, DELETE FROM, SAMPLE
+
+Paranthesis can contain
+ paranthesis, comma separated list, join separated list, select statement, nothing
+
+class Select : ChildOfParanthised
+class Column : ChildOfSelect
+class Paranthised : ChildOfColumn, ChildOfParanthised, ChildOfCase
+class Case : ChildOfColumn, ChildOfParanthised, ChildOfCase
+*/

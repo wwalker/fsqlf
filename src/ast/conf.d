@@ -1,5 +1,5 @@
 /* Defines node type from abstract syntax tree (e.g. 'select' clause, 'from' clause etc.)  */
-module ast.subtree_conf;
+module ast.conf;
 
 
 alias string[] in_type;
@@ -111,4 +111,3 @@ in_element getFrontThenPop(ref in_type input){
     popFront(input);
     return cache;
 }
-
