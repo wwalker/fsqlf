@@ -59,7 +59,7 @@ public:
     {
         if( _cachedFront.empty )
         {
-            _cachedFront = getItem();
+            _cachedFront = getNextItem( _input, _conf );
             (*_input_adress) = _input; // modify also variable suplied during creation of SubTree
 
             cachedPreviousLeafsLastItem = leafsLastItem( _cachedFront );
@@ -99,48 +99,52 @@ public:
 
 
 private:
-    Node getItem()
+    Node getNextItem( ref in_type input, SubtreeConf conf )
     {
-        if( _conf.isRecognised( _input.front() ) )
+        if( conf.isRecognised( input.front() ) )
         {
-            return getLeafSingleItem();
+            return getLeafSingleItem( input, conf );
         }
-        else if( selectConfiguration( _input.front() ) == SubtreeConf.NONE )
+        else if( selectConfiguration( input.front() ) == SubtreeConf.NONE )
         {
-            return getLeafMultiItem();
+            return getLeafMultiItem( input, conf );
         }
         else
         {
-            auto selectedConf = selectConfiguration( _input.front() );
-            return new SubTree( this, _input, selectedConf );
+            auto selectedConf = selectConfiguration( input.front() );
+            return new SubTree( this, input, selectedConf );
         }
     }
 
 
-    Leaf getLeafMultiItem()
+    static
+    Leaf getLeafMultiItem( ref in_type input, SubtreeConf conf )
     {
         auto leaf = new Leaf;
-        while ( !_input.empty && !_conf.isEndOfLeaf( _input.front() ) )
+        while ( !input.empty && !conf.isEndOfLeaf( input.front() ) )
         {
-            leaf ~= _input.getFrontThenPop();
+            leaf ~= input.getFrontThenPop();
         }
         return leaf;
     }
 
 
-    Leaf getLeafSingleItem()
+    static
+    Leaf getLeafSingleItem( ref in_type input, SubtreeConf conf )
     {
         auto leaf = new Leaf;
-        leaf ~= _input.getFrontThenPop();
+        leaf ~= input.getFrontThenPop();
         return leaf;
     }
 
 
-    static string leafsLastItem( Node front )
+    static
+    string leafsLastItem( Node front )
     {
         Leaf frontLeaf = cast(Leaf) front;
 
-        if( frontLeaf && !frontLeaf.empty)
+        if( frontLeaf
+            && !frontLeaf.empty)
         {
             return frontLeaf.lastItem();
         }
