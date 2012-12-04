@@ -40,12 +40,12 @@ public:
         {
             return true;
         }
-        else if( _conf.include_end == End.exclusive
+        else if( _conf.end_type == End.exclusive
             && _conf.isEndOfNode( _input.front() ) )
         {
             return true;
         }
-        else if( _conf.include_end == End.inclusive
+        else if( _conf.end_type == End.inclusive
             && _conf.isEndOfNode( cachedPreviousLeafsLastItem ) )
         {
             return true;

@@ -18,14 +18,14 @@ struct SubtreeConf
     immutable kw_type[] _start;
     immutable kw_type[] _separator;
     immutable kw_type[] _end;
-    immutable End include_end;
+    immutable End end_type;
 
     bool opEquals(SubtreeConf other)
     {
         return this._start == other._start
             && this._end == other._end
             && this._separator == other._separator
-            && this.include_end == other.include_end;
+            && this.end_type == other.end_type;
     }
 
     bool isStart(in_element item)
