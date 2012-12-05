@@ -1,3 +1,4 @@
+/* Node-Leaf of abstract-syntax-tree */
 module ast.node_leaf;
 
 

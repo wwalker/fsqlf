@@ -1,3 +1,4 @@
+/* SQL-Specific configurations of nodes */
 module ast.conf_sql;
 
 

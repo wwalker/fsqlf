@@ -1,3 +1,4 @@
+/* Node-Subtree of abstract-syntax-tree */
 module ast.node_subtree;
 
 

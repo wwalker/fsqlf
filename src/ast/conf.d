@@ -1,4 +1,4 @@
-/* Defines node type from abstract syntax tree (e.g. 'select' clause, 'from' clause etc.)  */
+/* Structure for configuration of node in abstract-syntax-tree */
 module ast.conf;
 
 

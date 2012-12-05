@@ -1,3 +1,4 @@
+/* Interface of abstract-syntax-tree node */
 module ast.node;
 
 

@@ -1,3 +1,4 @@
+/* Decide what configuration should be used */
 module ast.conf_select;
 
 
