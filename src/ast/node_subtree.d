@@ -13,8 +13,7 @@ class SubTree : Node
 {
 private:
     SubTree _parent;
-    in_type _input;
-    in_type* _input_adress;
+    in_type* _input_ptr;
 
     SubtreeConf _conf;
 
@@ -23,11 +22,10 @@ private:
 
 public:
     static SubTree no_parent = null;
-    this(SubTree parent, ref in_type input, SubtreeConf conf)
+    this(SubTree parent, in_type* input_adress, SubtreeConf conf)
     {
         _parent = parent;
-        _input = input;
-        _input_adress = &input;
+        _input_ptr = input_adress;
         _conf = conf;
 
         _cachedFront = new Leaf;
@@ -37,12 +35,12 @@ public:
     @property
     bool empty()
     {
-        if( _input.empty )
+        if( (*_input_ptr).empty )
         {
             return true;
         }
         else if( _conf.end_type == End.exclusive
-            && _conf.isEndOfNode( _input.front() ) )
+            && _conf.isEndOfNode( (*_input_ptr).front() ) )
         {
             return true;
         }
@@ -60,9 +58,7 @@ public:
     {
         if( _cachedFront.empty )
         {
-            _cachedFront = getNextItem( _input, _conf );
-            (*_input_adress) = _input; // modify also variable suplied during creation of SubTree
-
+            _cachedFront = getNextItem( *_input_ptr, _conf );
             cachedPreviousLeafsLastItem = leafsLastItem( _cachedFront );
         }
         return _cachedFront;
@@ -77,7 +73,7 @@ public:
 
     void clear()
     {
-        _input.clear();
+        //_input.clear();
     }
 
 
@@ -113,7 +109,7 @@ private:
         else
         {
             auto selectedConf = selectConfiguration( input.front() );
-            return new SubTree( this, input, selectedConf );
+            return new SubTree( this, _input_ptr, selectedConf );
         }
     }
 
@@ -160,7 +156,7 @@ unittest
     import std.stdio;
     import std.array;
     string[] input = array( splitter("SELECT 1 , ( 2 , 3 x ) , 4 , 5 FROM ( SELECT 1 t UNION SELECT 2 t ) a") );
-    auto st = new SubTree( SubTree.no_parent, input, SubtreeConf.NONE );
+    auto st = new SubTree( SubTree.no_parent, &input, SubtreeConf.NONE );
     writeln( st );
     writeln("\n\n");
 }
