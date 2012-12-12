@@ -8,27 +8,30 @@ import ast.node_leaf;
 import ast.conf;
 import ast.conf_select;
 
+import std.range:ElementType;
 
-class SubTree : Node
+
+class SubTree( KeywordRange, Keyword = ElementType!KeywordRange ) : Node!(KeywordRange)
 {
 private:
-    SubTree _parent;
-    in_type* _input_ptr;
+    SubTree!(KeywordRange) _parent;
+    KeywordRange* _input_ptr;
 
     SubtreeConf _conf;
 
-    Node _cachedFront;
-    string cachedPreviousLeafsLastItem;
+    Node!(KeywordRange) _cachedFront;
+    Keyword cachedPreviousLeafsLastItem;
 
 public:
-    static SubTree no_parent = null;
-    this(SubTree parent, in_type* input_adress, SubtreeConf conf)
+    static SubTree!(KeywordRange) no_parent = null;
+
+    this(SubTree!(KeywordRange) parent, KeywordRange* input_adress, SubtreeConf conf)
     {
         _parent = parent;
         _input_ptr = input_adress;
         _conf = conf;
 
-        _cachedFront = new Leaf;
+        _cachedFront = new Leaf!(KeywordRange);
     }
 
 
@@ -96,7 +99,7 @@ public:
 
 
 private:
-    Node getNextItem( ref in_type input, SubtreeConf conf )
+    Node!(KeywordRange) getNextItem( ref KeywordRange input, SubtreeConf conf )
     {
         if( conf.isRecognised( input.front() ) )
         {
@@ -109,15 +112,15 @@ private:
         else
         {
             auto selectedConf = selectConfiguration( input.front() );
-            return new SubTree( this, _input_ptr, selectedConf );
+            return new SubTree!(KeywordRange)( this, _input_ptr, selectedConf );
         }
     }
 
 
     static
-    Leaf getLeafMultiItem( ref in_type input, SubtreeConf conf )
+    Leaf!(KeywordRange) getLeafMultiItem( ref KeywordRange input, SubtreeConf conf )
     {
-        auto leaf = new Leaf;
+        auto leaf = new Leaf!(KeywordRange);
         while ( !input.empty && !conf.isEndOfLeaf( input.front() ) )
         {
             leaf ~= input.getFrontThenPop();
@@ -127,18 +130,18 @@ private:
 
 
     static
-    Leaf getLeafSingleItem( ref in_type input, SubtreeConf conf )
+    Leaf!( KeywordRange ) getLeafSingleItem( ref KeywordRange input, SubtreeConf conf )
     {
-        auto leaf = new Leaf;
+        auto leaf = new Leaf!(KeywordRange);
         leaf ~= input.getFrontThenPop();
         return leaf;
     }
 
 
     static
-    string leafsLastItem( Node front )
+    Keyword leafsLastItem( Node!(KeywordRange) front )
     {
-        Leaf frontLeaf = cast(Leaf) front;
+        Leaf!(KeywordRange) frontLeaf = cast(Leaf!(KeywordRange)) front;
 
         if( frontLeaf
             && !frontLeaf.empty)
@@ -156,7 +159,7 @@ unittest
     import std.stdio;
     import std.array;
     string[] input = array( splitter("SELECT 1 , ( 2 , 3 x ) , 4 , 5 FROM ( SELECT 1 t UNION SELECT 2 t ) a") );
-    auto st = new SubTree( SubTree.no_parent, &input, SubtreeConf.NONE );
+    auto st = new SubTree!(string[])( SubTree!(string[]).no_parent, &input, SubtreeConf.NONE );
     writeln( st );
     writeln("\n\n");
 }
