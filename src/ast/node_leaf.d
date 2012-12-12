@@ -2,21 +2,22 @@
 module ast.node_leaf;
 
 
-import ast.conf;
 import ast.node;
 
+import std.range:ElementType;
 
-class Leaf : Node
+
+class Leaf( KeywordRange, Keyword = ElementType!KeywordRange ) : Node!( KeywordRange )
 {
-    in_type _payload;
+    Keyword[] _payload;
     this(){}
 
-    this(in_element content)
+    this(Keyword content)
     {
         _payload ~= content;
     }
 
-    Leaf opCatAssign(in_element anOther)
+    Leaf!( KeywordRange ) opCatAssign(Keyword anOther)
     {
         _payload ~= anOther;
         return this;
@@ -49,7 +50,7 @@ class Leaf : Node
 }
 unittest
 {
-    auto x = new Leaf;
+    auto x = new Leaf!(string[]);
     x ~= "str1";
     x ~= "str2";
     assert(x.toStringIndented(0) == "<\"str1\", \"str2\">");

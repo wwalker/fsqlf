@@ -2,7 +2,7 @@
 module ast.node;
 
 
-interface Node
+interface Node( KeywordRange )
 {
     string toStringIndented( int indentation_level );
     @property bool empty();
