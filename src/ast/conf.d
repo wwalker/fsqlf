@@ -13,14 +13,14 @@ enum End {inclusive, exclusive};
 
 
 
-struct SubtreeConf
+struct SubtreeConf( Keyword )
 {
-    immutable kw_type[] _start;
-    immutable kw_type[] _separator;
-    immutable kw_type[] _end;
+    immutable Keyword[] _start;
+    immutable Keyword[] _separator;
+    immutable Keyword[] _end;
     immutable End end_type;
 
-    bool opEquals(SubtreeConf other)
+    bool opEquals(SubtreeConf!(Keyword) other)
     {
         return this._start == other._start
             && this._end == other._end
@@ -28,30 +28,30 @@ struct SubtreeConf
             && this.end_type == other.end_type;
     }
 
-    bool isStart(in_element item)
+    bool isStart(Keyword item)
     {
         import std.algorithm:canFind;
         return  canFind( _start, item );
     }
 
-    bool isSeparator(in_element item)
+    bool isSeparator(Keyword item)
     {
         import std.algorithm:canFind;
         return  canFind( _separator, item );
     }
 
-    bool isEndOfNode(in_element item)
+    bool isEndOfNode(Keyword item)
     {
         import std.algorithm:canFind;
         return  canFind( _end, item );
     }
 
-    bool isEndOfLeaf(in_element item)
+    bool isEndOfLeaf(Keyword item)
     {
         return  isEndOfNode( item ) || isSeparator( item );
     }
 
-    bool isRecognised(in_element item)
+    bool isRecognised(Keyword item)
     {
         return isStart( item )
             || isSeparator( item )
@@ -61,7 +61,7 @@ struct SubtreeConf
     enum Element {Start, Separator, End, Other}
 
     /* Return type of the element, based on current configuration */
-    Element elementType(in_element item)
+    Element elementType(Keyword item)
     {
         import std.algorithm:canFind;
         if( canFind( _start, item ) )
@@ -83,7 +83,7 @@ struct SubtreeConf
         }
     }
 
-    enum NONE = SubtreeConf( [" "], [" "], [" "], End.inclusive );
+    enum NONE = SubtreeConf!(Keyword)( [" "], [" "], [" "], End.inclusive );
 }
 
 

@@ -17,7 +17,7 @@ private:
     SubTree!(KeywordRange) _parent;
     KeywordRange* _input_ptr;
 
-    SubtreeConf _conf;
+    SubtreeConf!(Keyword) _conf;
 
     Node!(KeywordRange) _cachedFront;
     Keyword cachedPreviousLeafsLastItem;
@@ -25,7 +25,7 @@ private:
 public:
     static SubTree!(KeywordRange) no_parent = null;
 
-    this(SubTree!(KeywordRange) parent, KeywordRange* input_adress, SubtreeConf conf)
+    this(SubTree!(KeywordRange) parent, KeywordRange* input_adress, SubtreeConf!(Keyword) conf)
     {
         _parent = parent;
         _input_ptr = input_adress;
@@ -99,13 +99,13 @@ public:
 
 
 private:
-    Node!(KeywordRange) getNextItem( ref KeywordRange input, SubtreeConf conf )
+    Node!(KeywordRange) getNextItem( ref KeywordRange input, SubtreeConf!(Keyword) conf )
     {
         if( conf.isRecognised( input.front() ) )
         {
             return getLeafSingleItem( input, conf );
         }
-        else if( selectConfiguration( input.front() ) == SubtreeConf.NONE )
+        else if( selectConfiguration( input.front() ) == SubtreeConf!(Keyword).NONE )
         {
             return getLeafMultiItem( input, conf );
         }
@@ -118,7 +118,7 @@ private:
 
 
     static
-    Leaf!(KeywordRange) getLeafMultiItem( ref KeywordRange input, SubtreeConf conf )
+    Leaf!(KeywordRange) getLeafMultiItem( ref KeywordRange input, SubtreeConf!(Keyword) conf )
     {
         auto leaf = new Leaf!(KeywordRange);
         while ( !input.empty && !conf.isEndOfLeaf( input.front() ) )
@@ -130,7 +130,7 @@ private:
 
 
     static
-    Leaf!( KeywordRange ) getLeafSingleItem( ref KeywordRange input, SubtreeConf conf )
+    Leaf!( KeywordRange ) getLeafSingleItem( ref KeywordRange input, SubtreeConf!(Keyword) conf )
     {
         auto leaf = new Leaf!(KeywordRange);
         leaf ~= input.getFrontThenPop();
@@ -159,7 +159,7 @@ unittest
     import std.stdio;
     import std.array;
     string[] input = array( splitter("SELECT 1 , ( 2 , 3 x ) , 4 , 5 FROM ( SELECT 1 t UNION SELECT 2 t ) a") );
-    auto st = new SubTree!(string[])( SubTree!(string[]).no_parent, &input, SubtreeConf.NONE );
+    auto st = new SubTree!(string[])( SubTree!(string[]).no_parent, &input, SubtreeConf!(string).NONE );
     writeln( st );
     writeln("\n\n");
 }
